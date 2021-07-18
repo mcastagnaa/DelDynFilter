@@ -6,6 +6,7 @@ library(tidyr)
 library(lubridate)
 library(ggplot2)
 library(ggrepel)
+library(DT)
 
 rm(list = ls())
 
@@ -34,10 +35,6 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                 ),
                 sidebarLayout(
                   sidebarPanel = sidebarPanel(
-                    # radioButtons("filter1",
-                    #              "Manager Filter",
-                    #              choices = c("Internal", "All"),
-                    #              selected = "Internal"),
                     radioButtons("filter2",
                                  "Representative Filter",
                                  choices = c("Main", "All"),
@@ -49,7 +46,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                     hr(),
                     selectInput("filter1",
                                 "Managers: 1 or more",
-                                unique(MAP$mgrName),
+                                sort(unique(MAP$mgrName)),
                                 multiple = T,
                                 selected = "MIFL"),
                     hr(),
@@ -79,14 +76,12 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                     fluidRow(dateInput("refDate", "Reference date", value = max(RETS$Date), 
                               format = "d-M-yy", width = "100px",
                               weekstart = 1)),
-                             #tableOutput("dates")),
-                    #fluidRow(div(DT::dataTableOutput("table"), style = "font-size:60%")),
-                    div(DT::dataTableOutput("table"), style = "font-size:60%"),
-                    h5("Click on the table to get the chart of that delegate returns for the time frame specificed below"),
+                    div(DTOutput("table"), style = "font-size:70%"),
+                    h5(""),
                     #verbatimTextOutput("selected"),
                     br(),
                     selectInput("chartFrame", "Select time frame for chart:", 
-                                choices = c("1 day", "1 week", "MtD", "YtD", "QtD", "SI"),
+                                choices = c("1d", "1w", "MtD", "YtD", "QtD", "SI"),
                                 selected = "YtD",
                                 multiple = F),
                     fluidRow(column(6, plotOutput("scatter")),
@@ -145,12 +140,11 @@ server <- function(input, output, session) {
   observeEvent(input$refDate, {
     d1 <- max(RETS$Date[RETS$Date <= (input$refDate-1)])
     w1 <- max(RETS$Date[RETS$Date <= (input$refDate-7)])
-    #y1 <- max(RETS$Date[RETS$Date <= (input$refDate %m-% months(12))])
     QtD <- max(RETS$Date[RETS$Date <= (yq(quarter(input$refDate, with_year = TRUE)) - days(1))])
     MtD <- max(RETS$Date[RETS$Date <= as.Date(format(input$refDate, "%Y-%m-01"))-1])
     YtD <- max(RETS$Date[RETS$Date <= as.Date(format(input$refDate, "%Y-01-01"))-1])
     
-    datesResult$datesFrame <- data.frame(Label = c("1 day", "1 week", "MtD", "YtD", "QtD"), 
+    datesResult$datesFrame <- data.frame(Label = c("1d", "1w", "MtD", "YtD", "QtD"),
                                          Date = c(d1, w1, MtD, YtD, QtD),
                                          stringsAsFactors = F)
     rm(d1, w1, QtD, MtD, YtD)
@@ -164,8 +158,7 @@ server <- function(input, output, session) {
   output$dates <- renderTable(datesResult$datesFrame %>%
                                 mutate(Date = format(Date, "%d-%h-%y")))
   
-  output$table <- DT::renderDataTable({
-    
+  output$table <- renderDT({
     groups <- setdiff(c(dims$Code[dims$Name == input$Group1],
                         dims$Code[dims$Name == input$Group2],
                         dims$Code[dims$Name == input$Group3],
@@ -176,24 +169,42 @@ server <- function(input, output, session) {
                input$refDate, datesResult$datesFrame, input$chartFrame)
     
     return(tableData$fullMap)
-    }, 
+    },
+    container = htmltools::withTags(table(
+      class = 'display',
+      thead(
+        tr(
+          th(colspan = ncol(tableData$fullMap)-3*6, 'IDs'),
+          th(colspan = 3, '1 Day'),
+          th(colspan = 3, '1 Week'),
+          th(colspan = 3, 'MtD'),
+          th(colspan = 3, 'QtD'),
+          th(colspan = 3, 'YtD'),
+          th(colspan = 3, 'SI')
+        ),
+        tr(
+          lapply(c(names(tableData$fullMap[1:(ncol(tableData$fullMap)-3*6)]),
+                   rep(c('Del', 'SAA', 'ER'), 6)), 
+                 th)
+        )
+      )
+    )),
     selection = "single", #list(target= "cell"),
     options = list(pageLength = 10, autoWidth = TRUE),
-    rownames = FALSE)
+    rownames = FALSE,
+    filter= "bottom",
+    class = "compact cell-border",
+    caption = paste('Main Table: Click on the table to get the chart of that",
+                     "delegate returns for the time frame specificed.'))
   
-  output$startDate<- renderPrint({
+  output$startDate <- renderPrint({
     req(length(input$table_cell_clicked) > 0)
-    #input$table_cell_clicked["value"]
-    
+
     startDate <- if(input$chartFrame == "SI") {
       as.Date("1900-01-01")
     } else datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
     
     return(tableData$fullMap[as.numeric(input$table_cell_clicked["row"]),"DelCode"])
-    # return(c(startDate = format(as.Date(startDate), "%d-%m-%Y"), 
-    #          delegate = input$table_cell_clicked["value"], 
-    #          refDate = format(input$refDate, "%d-%m-%Y"), 
-    #          frame = input$chartFrame))
   })
   
   output$retsTS <- renderPlot({
@@ -205,7 +216,6 @@ server <- function(input, output, session) {
     
     return(f_getRetsTS(delCode = as.character(tableData$fullMap[as.numeric(input$table_cell_clicked["row"]),
                                                                 "DelCode"]),
-                          #input$table_cell_clicked["value"], 
                        refDate = format(input$refDate, "%Y-%m-%d"), 
                        startDate = format(as.Date(startDate), "%Y-%m-%d"), 
                        chartFrame = input$chartFrame))
@@ -213,7 +223,6 @@ server <- function(input, output, session) {
   })
   
   output$scatter <- renderPlot({
-    
     groups <- setdiff(c(dims$Code[dims$Name == input$Group1],
                         dims$Code[dims$Name == input$Group2],
                         dims$Code[dims$Name == input$Group3],

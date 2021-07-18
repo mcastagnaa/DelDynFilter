@@ -28,27 +28,15 @@ f_getTable <- function(groups, input1, input2, input3, refDate, datesFrame, char
            ER = round(Del-SAA, 2)) %>%
     filter(Label != "Last") %>%
     select(DelCode, Label, Del, SAA, ER) %>%
-    #mutate(Label = factor(Label, levels = c("1 day", "1 week", "MtD", "YtD", "1y", "SI"))) %>%
-    pivot_longer(-c(DelCode, Label)) 
-  
-  delChart <- thisRetsSet %>%
-    filter(Label == chartFrame,
-           name != "ER") %>%
-    select(-Label) %>%
-    pivot_wider(names_from = name, values_from = value) %>%
-    ggplot(aes(x = SAA, y = Del, label = DelCode)) +
-    geom_abline(slope = 1, color = "grey", linetype = 2) +
-    geom_point() +
-    geom_text_repel() +
-    theme_bw()
-  
-  thisRets <- thisRetsSet %>%
-    pivot_wider(names_from = c(Label, name), values_from = value)
+    mutate(Label = factor(Label, levels = c("1d", "1w", "MtD", "QtD", "YtD", "SI"))) %>%
+    pivot_longer(-c(DelCode, Label)) %>%
+    arrange(Label) %>%
+    pivot_wider(names_from = c(Label, name), values_from = value) 
   
   fullMap <- thisMAP %>%
-    left_join(thisRets, by = "DelCode")
+    left_join(thisRetsSet, by = "DelCode")
   
-  rm(thisRets, thisRetsSet)
+  rm(thisRetsSet)
   
   return(fullMap)
 }
