@@ -1,12 +1,13 @@
 # delCode = as.data.frame(c('701880','701879'))
 # refDate <- as.Date("2021-07-13")
-# chartFrame <- "SI"
 # startDate <- as.Date("2020-12-31")
 
-f_getRetsTS <- function(delCode, refDate, startDate, chartFrame) {
+f_getRetsTS <- function(delCode, refDate, startDate) {
   
   startDate <- as.Date(startDate)
   refDate <- as.Date(refDate)
+  
+  Hline <- data.frame(panel = c("Relative", "Absolute"), Y = c(0,100))
 
   chart <- RETS %>%
     filter(DelCode %in% delCode[,1],
@@ -23,6 +24,7 @@ f_getRetsTS <- function(delCode, refDate, startDate, chartFrame) {
            Line = ifelse(Variable == "SAAIndex", "SAA", "Portfolio"),
            DelCode = as.character(DelCode)) %>%
     ggplot() +
+    geom_hline(data = Hline, aes(yintercept = Y), color = "dark grey", linetype = "dashed") +
     geom_line(aes(x = Date, y = value,  linetype = Line, color = DelCode)) +
     facet_wrap(~panel, ncol = 1, scales="free_y") +
     theme_bw() +

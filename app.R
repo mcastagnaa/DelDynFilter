@@ -7,6 +7,7 @@ library(lubridate)
 library(ggplot2)
 library(ggrepel)
 library(DT)
+library(tidyquant)
 
 rm(list = ls())
 
@@ -15,6 +16,7 @@ source("datamanagement.R")
 source("f_getTable.R")
 source("f_getScatter.R")
 source("f_getRetsTS.R")
+source("f_getRetsStats.R")
 
 dims <- data.frame(Name = c("Manager", "Asset Class", "Region", "Style", "Fund"),
                    Codes = c("mgrName", "AssetClass", "Region", "Style", "FundName"),
@@ -85,7 +87,10 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                     fluidRow(column(6, plotOutput("scatter")),
                              #column(6, verbatimTextOutput("startDate")),
                              #column(6, verbatimTextOutput("tableSelection")),
-                             column(6, plotOutput("retsTS")))
+                             column(6, plotOutput("retsTS"))),
+                    br(),
+                    h4("CAPM statistics on weekly returns"),
+                    div(tableOutput("selectStats"), style = "font-size:70%")
                   )
                 )
 )
@@ -219,12 +224,9 @@ server <- function(input, output, session) {
       as.Date("1900-01-01")
     } else datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
     
-    return(f_getRetsTS(#delCode = as.character(tableData$fullMap[as.numeric(input$table_cell_clicked["row"]),
-                       #                                        "DelCode"]),
-                       delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
+    return(f_getRetsTS(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
                        refDate = format(input$refDate, "%Y-%m-%d"), 
-                       startDate = format(as.Date(startDate), "%Y-%m-%d"), 
-                       chartFrame = input$chartFrame))
+                       startDate = format(as.Date(startDate), "%Y-%m-%d")))
     
   })
   
@@ -238,6 +240,14 @@ server <- function(input, output, session) {
     f_getScatter(groups, input$filter1, input$filter2, input$filter3,
                  input$refDate, datesResult$datesFrame, input$chartFrame)
     
+  })
+  
+  output$selectStats <- renderTable({
+    req(length(input$table_rows_selected) > 0)
+    
+    f_getRetsStats(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
+                   refDate = format(input$refDate, "%Y-%m-%d"), 
+                   startDate = format(as.Date(startDate), "%Y-%m-%d"))
   })
 }
 
