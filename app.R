@@ -245,6 +245,10 @@ server <- function(input, output, session) {
   output$selectStats <- renderTable({
     req(length(input$table_rows_selected) > 0)
     
+    startDate <- if(input$chartFrame == "SI") {
+      as.Date("1900-01-01")
+    } else datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
+    
     f_getRetsStats(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
                    refDate = format(input$refDate, "%Y-%m-%d"), 
                    startDate = format(as.Date(startDate), "%Y-%m-%d"))
