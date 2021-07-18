@@ -6,3 +6,4 @@
 *.Rproj
 
 DelSet.Rda
+*TEST.*
