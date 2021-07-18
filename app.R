@@ -77,15 +77,14 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                               format = "d-M-yy", width = "100px",
                               weekstart = 1)),
                     div(DTOutput("table"), style = "font-size:70%"),
-                    h5(""),
-                    #verbatimTextOutput("selected"),
                     br(),
                     selectInput("chartFrame", "Select time frame for chart:", 
                                 choices = c("1d", "1w", "MtD", "YtD", "QtD", "SI"),
                                 selected = "YtD",
                                 multiple = F),
                     fluidRow(column(6, plotOutput("scatter")),
-                             #column(6, verbatimTextOutput("startDate")))
+                             #column(6, verbatimTextOutput("startDate")),
+                             #column(6, verbatimTextOutput("tableSelection")),
                              column(6, plotOutput("retsTS")))
                   )
                 )
@@ -189,13 +188,13 @@ server <- function(input, output, session) {
         )
       )
     )),
-    selection = "single", #list(target= "cell"),
+    #selection = "single", #list(target= "cell"),
     options = list(pageLength = 10, autoWidth = TRUE),
     rownames = FALSE,
     filter= "bottom",
     class = "compact cell-border",
-    caption = paste('Main Table: Click on the table to get the chart of that",
-                     "delegate returns for the time frame specificed.'))
+    caption = paste('Main Table: Click on the table to get the chart of that',
+                     'delegate returns for the time frame specificed.'))
   
   output$startDate <- renderPrint({
     req(length(input$table_cell_clicked) > 0)
@@ -207,15 +206,22 @@ server <- function(input, output, session) {
     return(tableData$fullMap[as.numeric(input$table_cell_clicked["row"]),"DelCode"])
   })
   
+  output$tableSelection <- renderPrint({
+    #req(length(input$table_cell_clicked) > 0)
+    #return(input$table_rows_selected)
+    return(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))
+  })
+  
   output$retsTS <- renderPlot({
-    req(length(input$table_cell_clicked) > 0)
+    req(length(input$table_rows_selected) > 0)
     
     startDate <- if(input$chartFrame == "SI") {
       as.Date("1900-01-01")
     } else datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
     
-    return(f_getRetsTS(delCode = as.character(tableData$fullMap[as.numeric(input$table_cell_clicked["row"]),
-                                                                "DelCode"]),
+    return(f_getRetsTS(#delCode = as.character(tableData$fullMap[as.numeric(input$table_cell_clicked["row"]),
+                       #                                        "DelCode"]),
+                       delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
                        refDate = format(input$refDate, "%Y-%m-%d"), 
                        startDate = format(as.Date(startDate), "%Y-%m-%d"), 
                        chartFrame = input$chartFrame))
