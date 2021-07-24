@@ -80,19 +80,24 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                               weekstart = 1)),
                     div(DTOutput("table"), style = "font-size:70%"),
                     br(),
-                    selectInput("chartFrame", "Select time frame for chart:", 
-                                choices = c("1d", "1w", "MtD", "YtD", "QtD", "SI"),
-                                selected = "YtD",
-                                multiple = F),
-                    fluidRow(column(6, plotOutput("scatter")),
-                             #column(6, verbatimTextOutput("startDate")),
-                             #column(6, verbatimTextOutput("tableSelection")),
-                             column(6, plotOutput("retsTS"))),
-                    br(),
-                    h4("CAPM statistics on weekly returns"),
-                    div(tableOutput("selectStats"), style = "font-size:70%")
-                  )
-                )
+                    tabsetPanel(
+                      type = "tabs",
+                      tabPanel("Charts/Stats",
+                               selectInput("chartFrame", "Select time frame for chart:", 
+                                           choices = c("1d", "1w", "MtD", "YtD", "QtD", "SI"),
+                                           selected = "YtD",
+                                           multiple = F),
+                               fluidRow(column(6, plotOutput("scatter")),
+                                        #column(6, verbatimTextOutput("startDate")),
+                                        #column(6, verbatimTextOutput("tableSelection")),
+                                        column(6, plotOutput("retsTS"))),
+                               br(),
+                               h4("CAPM statistics on weekly returns"),
+                               div(tableOutput("selectStats"), style = "font-size:70%")),
+                      tabPanel("Delegates full map",
+                               div(dataTableOutput("fullMap"), style = "font-size:70%"))
+                      )
+                  , width = 10))
 )
 
 server <- function(input, output, session) {
@@ -161,6 +166,16 @@ server <- function(input, output, session) {
   
   output$dates <- renderTable(datesResult$datesFrame %>%
                                 mutate(Date = format(Date, "%d-%h-%y")))
+  
+  output$fullMap <- renderDataTable(
+    MAP %>%
+      {if (input$filter2 == "Main") filter(., IsRepresentative) else .} %>%
+      {if (input$filter3 == "Live") filter(., is.na(EndDate)|EndDate > input$refDate) else .} %>%
+      select(DelCode, SAACode = RimesBlendID, AM = mgrName, AssetClass, Region, Style, StartDate, EndDate,
+             SAAdef,FundName),
+    rownames = FALSE,
+    filter= "bottom",
+    class = "compact")
   
   output$table <- renderDT({
     groups <- setdiff(c(dims$Code[dims$Name == input$Group1],
