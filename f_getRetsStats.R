@@ -25,8 +25,25 @@ f_getRetsStats <- function(delCode, refDate, startDate) {
                  col_rename = "Rets") %>%
     pivot_wider(names_from = "Variable", values_from = "Rets") %>%
     group_by(DelCode) %>%
-    tq_performance(Ra = Port, Rb = SAA, performance_fun = table.CAPM)
+    tq_performance(Ra = Port, Rb = SAA, performance_fun = table.CAPM) %>%
+    select(-c(ActivePremium, `Correlationp-value`)) %>%
+    mutate(Alpha = Alpha * 100,
+           AnnualizedAlpha = AnnualizedAlpha * 100,
+           TrackingError = TrackingError * 100)
   
-  return(stats)
+  rets <- RETS %>%
+    filter(DelCode %in% delCode[,1],
+           Date >= startDate,
+           Date <= refDate) %>%
+    arrange(Date) %>%
+    mutate(DelCode = as.character(DelCode)) %>%
+    group_by(DelCode) %>%
+    summarise(Port = round(last(PortIndex)/first(PortIndex)-1, 4)*100,
+              SAA = round(last(SAAIndex)/first(SAAIndex)-1, 4)*100,
+              ER = Port-SAA) %>%
+    left_join(stats, by = "DelCode")
+  
+  
+  return(rets)
 }
 

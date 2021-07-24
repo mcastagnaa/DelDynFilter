@@ -14,7 +14,7 @@ rm(list = ls())
 ### SETUP ######################################
 source("datamanagement.R")
 source("f_getTable.R")
-source("f_getScatter.R")
+source("f_getScatter_v2.R")
 source("f_getRetsTS.R")
 source("f_getRetsStats.R")
 
@@ -27,12 +27,14 @@ dims <- data.frame(Name = c("Manager", "Asset Class", "Region", "Style", "Fund")
 ui <- fluidPage(theme=shinytheme("lumen"),
                 useShinyjs(),
                 fluidRow(
-                  column(3,br(),
-                         img(src = "logo.png", width = "100")),
-                  column(9,
+                  column(2,
+                         br(), br(),
+                         div(img(src = "logo.png", width = "100")), style="text-align: center;"),
+                  column(10,
                          titlePanel("Managed account returns dashboard"),
-                         h4("MIFL = internal sleeves"),
-                         h4("non-MIFL = external delegates"),
+                         h5("MIFL manager -> internal sleeves"),
+                         h5("non-MIFL manager -> external delegates"),
+                         h6("Data as per Fusion (Portfolio) and Rimes (SAA) extracts", style ="color: red;"),
                          hr())
                 ),
                 sidebarLayout(
@@ -75,29 +77,41 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                 selected = NULL),
                     width = 2), 
                   mainPanel = mainPanel(
-                    fluidRow(dateInput("refDate", "Reference date", value = max(RETS$Date), 
+                    fluidRow(column(3, dateInput("refDate", "Reference date", value = max(RETS$Date), 
                               format = "d-M-yy", width = "100px",
                               weekstart = 1)),
+                             column(3, selectInput("datesGroup",
+                                                   "Periods: 1 or more",
+                                                   c("1d", "1w", "1m", "3m", "6m", "MtD", "YtD", "QtD", "SI"),
+                                                   multiple = T,
+                                                   selected = c("1d", "1w", "MtD", "YtD", "QtD", "SI")))),
+                    div(paste("Main Table: Click on the table to get the chart/CAPM statistics of that",
+                              "delegate returns for the time frame specificed."), style ="color: red;"),
                     div(DTOutput("table"), style = "font-size:70%"),
                     br(),
                     tabsetPanel(
                       type = "tabs",
                       tabPanel("Charts/Stats",
-                               selectInput("chartFrame", "Select time frame for chart:", 
-                                           choices = c("1d", "1w", "MtD", "YtD", "QtD", "SI"),
-                                           selected = "YtD",
-                                           multiple = F),
+                               br(),
+                               fluidRow(column(3, selectInput("chartFrame", "Select time frame:", 
+                                                              choices = c("1d", "1w", "1m", "3m", "6m", 
+                                                                          "MtD", "YtD", "QtD", "SI", "Custom ..."),
+                                                              selected = "YtD",
+                                                              multiple = F)),
+                                        column(2, dateInput("startCust", "Start Date:", value = as.Date("2020-12-31"),
+                                                            format = "d-M-yy", width = "100px", weekstart = 1))),
                                fluidRow(column(6, plotOutput("scatter")),
                                         #column(6, verbatimTextOutput("startDate")),
                                         #column(6, verbatimTextOutput("tableSelection")),
                                         column(6, plotOutput("retsTS"))),
                                br(),
                                h4("CAPM statistics on weekly returns"),
+                               h6("(Returns, Alphas and Tracking error x 100)"),
                                div(tableOutput("selectStats"), style = "font-size:70%")),
                       tabPanel("Delegates full map",
                                div(dataTableOutput("fullMap"), style = "font-size:70%"))
                       )
-                  , width = 10))
+                  , width = 8))
 )
 
 server <- function(input, output, session) {
@@ -143,20 +157,42 @@ server <- function(input, output, session) {
       disable("Group4")
     }})
   
+  observeEvent(input$chartFrame, {
+    if(input$chartFrame == "Custom ...") {
+      enable("startCust")
+    } else {
+      stCust <- datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
+      if (is.na(stCust)) {
+        stCust <- max(RETS$Date[RETS$Date <= as.Date(format(input$refDate, "%Y-01-01"))-1])
+      }
+      
+      updateDateInput(session, "startCust", 
+                      label = "Start date:",
+                      value = stCust)
+      disable("startCust")
+    }
+  })
+  
   datesResult <- reactiveValues(datesFrame = 0)
   tableData <- reactiveValues(fullMap = 0) 
+  framesSelected <- reactiveValues(selFrames = 0)
+  
+  observeEvent(input$datesGroup, {framesSelected$selFrames <- input$datesGroup})
   
   observeEvent(input$refDate, {
     d1 <- max(RETS$Date[RETS$Date <= (input$refDate-1)])
     w1 <- max(RETS$Date[RETS$Date <= (input$refDate-7)])
+    m1 <- max(RETS$Date[RETS$Date <= (input$refDate-months(1))])
+    m3 <- max(RETS$Date[RETS$Date <= (input$refDate-months(3))])
+    m6 <- max(RETS$Date[RETS$Date <= (input$refDate-months(6))])
     QtD <- max(RETS$Date[RETS$Date <= (yq(quarter(input$refDate, with_year = TRUE)) - days(1))])
     MtD <- max(RETS$Date[RETS$Date <= as.Date(format(input$refDate, "%Y-%m-01"))-1])
     YtD <- max(RETS$Date[RETS$Date <= as.Date(format(input$refDate, "%Y-01-01"))-1])
     
-    datesResult$datesFrame <- data.frame(Label = c("1d", "1w", "MtD", "YtD", "QtD"),
-                                         Date = c(d1, w1, MtD, YtD, QtD),
+    datesResult$datesFrame <- data.frame(Label = c("1d", "1w", "1m", "3m", "6m","MtD", "YtD", "QtD"),
+                                         Date = c(d1, w1, m1, m3, m6, MtD, YtD, QtD),
                                          stringsAsFactors = F)
-    rm(d1, w1, QtD, MtD, YtD)
+    rm(d1, w1, m1, m3, m6, QtD, MtD, YtD)
     })
   
   output$groupings <- renderText({
@@ -185,7 +221,7 @@ server <- function(input, output, session) {
                       "")
   
     tableData$fullMap <- f_getTable(groups, input$filter1, input$filter2, input$filter3,
-               input$refDate, datesResult$datesFrame, input$chartFrame)
+               input$refDate, datesResult$datesFrame, input$chartFrame, input$datesGroup)
     
     return(tableData$fullMap)
     },
@@ -193,28 +229,29 @@ server <- function(input, output, session) {
       class = 'display',
       thead(
         tr(
-          th(colspan = ncol(tableData$fullMap)-3*6, 'IDs'),
-          th(colspan = 3, '1 Day'),
-          th(colspan = 3, '1 Week'),
-          th(colspan = 3, 'MtD'),
-          th(colspan = 3, 'QtD'),
-          th(colspan = 3, 'YtD'),
-          th(colspan = 3, 'SI')
-        ),
+          th(colspan = ncol(tableData$fullMap)-3 * length(framesSelected$selFrames), 'IDs'),
+          if("1d" %in% framesSelected$selFrames) th(colspan = 3, '1 Day'),
+          if("1w" %in% framesSelected$selFrames) th(colspan = 3, '1 Week'),
+          if("1m" %in% framesSelected$selFrames) th(colspan = 3, '1 Month'),
+          if("3m" %in% framesSelected$selFrames) th(colspan = 3, '3 Months'),
+          if("6m" %in% framesSelected$selFrames) th(colspan = 3, '6 Months'),
+          if("MtD" %in% framesSelected$selFrames) th(colspan = 3, 'MtD'),
+          if("QtD" %in% framesSelected$selFrames) th(colspan = 3, 'QtD'),
+          if("YtD" %in% framesSelected$selFrames) th(colspan = 3, 'YtD'),
+          if("SI" %in% framesSelected$selFrames) th(colspan = 3, 'SI')),
         tr(
-          lapply(c(names(tableData$fullMap[1:(ncol(tableData$fullMap)-3*6)]),
-                   rep(c('Del', 'SAA', 'ER'), 6)), 
-                 th)
+          lapply(c(names(tableData$fullMap[1:(ncol(tableData$fullMap)-3*length(framesSelected$selFrames))]),
+                   rep(c('Del', 'SAA', 'ER'), length(framesSelected$selFrames))), th)
         )
       )
     )),
-    #selection = "single", #list(target= "cell"),
+    ######selection = "single", #list(target= "cell"), ### TAKE THIS OUT FOR MULTIPLE SELECTION (DEFAULT)
     options = list(pageLength = 10, autoWidth = TRUE),
     rownames = FALSE,
     filter= "bottom",
-    class = "compact cell-border",
-    caption = paste('Main Table: Click on the table to get the chart of that',
-                     'delegate returns for the time frame specificed.'))
+    class = "compact cell-border")#,
+    #caption = paste('Main Table: Click on the table to get the chart/CAPM statistics of that',
+    #                 'delegate returns for the time frame specificed.'))
   
   output$startDate <- renderPrint({
     req(length(input$table_cell_clicked) > 0)
@@ -229,7 +266,8 @@ server <- function(input, output, session) {
   output$tableSelection <- renderPrint({
     #req(length(input$table_cell_clicked) > 0)
     #return(input$table_rows_selected)
-    return(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))
+    #return(as.data.frame(tableData$fullMap[,1]))
+    #return(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))
   })
   
   output$retsTS <- renderPlot({
@@ -237,12 +275,13 @@ server <- function(input, output, session) {
     
     startDate <- if(input$chartFrame == "SI") {
       as.Date("1900-01-01")
-    } else datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
+    } else if (input$chartFrame == "Custom ...") {
+      as.Date(input$startCust)
+      } else datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
     
     return(f_getRetsTS(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
-                       refDate = format(input$refDate, "%Y-%m-%d"), 
+                       refDate = format(as.Date(input$refDate), "%Y-%m-%d"), 
                        startDate = format(as.Date(startDate), "%Y-%m-%d")))
-    
   })
   
   output$scatter <- renderPlot({
@@ -252,8 +291,9 @@ server <- function(input, output, session) {
                         dims$Code[dims$Name == input$Group4]),
                       "")
     
-    f_getScatter(groups, input$filter1, input$filter2, input$filter3,
-                 input$refDate, datesResult$datesFrame, input$chartFrame)
+    f_getScatter(as.data.frame(tableData$fullMap[,1]), 
+                 input$refDate, datesResult$datesFrame, 
+                 input$chartFrame, input$startCust)
     
   })
   
@@ -262,7 +302,13 @@ server <- function(input, output, session) {
     
     startDate <- if(input$chartFrame == "SI") {
       as.Date("1900-01-01")
+    } else if (input$chartFrame == "Custom ...") {
+      as.Date(input$startCust)
     } else datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
+  
+    # startDate <- if(input$chartFrame == "SI") {
+    #   as.Date("1900-01-01")
+    # } else datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
     
     f_getRetsStats(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
                    refDate = format(input$refDate, "%Y-%m-%d"), 
