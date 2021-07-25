@@ -85,8 +85,11 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                                    c("1d", "1w", "1m", "3m", "6m", "MtD", "YtD", "QtD", "SI"),
                                                    multiple = T,
                                                    selected = c("1d", "1w", "MtD", "YtD", "QtD", "SI")))),
+<<<<<<< HEAD
                     div(paste("Main Table: Click on the table to get the chart/CAPM statistics of that",
                               "delegate returns for the time frame specificed."), style ="color: red;"),
+=======
+>>>>>>> 0816470966aa14d30ef8596d74d5e0b1b01e4f53
                     div(DTOutput("table"), style = "font-size:70%"),
                     br(),
                     tabsetPanel(
