@@ -293,7 +293,8 @@ server <- function(input, output, session) {
     
     f_getScatter(as.data.frame(tableData$fullMap[,1]), 
                  input$refDate, datesResult$datesFrame, 
-                 input$chartFrame, input$startCust)
+                 input$chartFrame, input$startCust,
+                 as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))
     
   })
   

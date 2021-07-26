@@ -19,7 +19,7 @@
 # 
 
 f_getScatter <- function(dels, refDate, datesFrame, 
-                         chartFrame, custStart) {
+                         chartFrame, custStart, delCode) {
   
   thisDates <- c(refDate, datesFrame$Date[datesFrame$Label %in% chartFrame])
   
@@ -41,10 +41,14 @@ f_getScatter <- function(dels, refDate, datesFrame,
   trsup <- data.frame(x=c(minC, minC, maxC), y=c(minC, maxC, maxC))
   trinf <- data.frame(x=c(minC, maxC, maxC),y=c(minC, minC, maxC))
   
+  enhDot <- thisRetsSet %>%
+    filter(DelCode %in% delCode[,1])
+  
   delChart <- ggplot() +
     geom_abline(slope = 1, color = "grey", linetype = 2) +
     geom_polygon(aes(x = x, y = y), data = trsup, fill = "light green", alpha = 0.1) + 
     geom_polygon(aes(x = x, y = y), data = trinf, fill = "red", alpha = 0.1) + 
+    geom_point(aes(x = SAA, y = Del), data = enhDot, color = "black", size = 4, shape = 1) +
     geom_point(aes(x = SAA, y = Del, color = Manager), data = thisRetsSet) +
     geom_text_repel(aes(x = SAA, y = Del, label = DelCode, color = Manager), data = thisRetsSet) +
     theme_bw() +
