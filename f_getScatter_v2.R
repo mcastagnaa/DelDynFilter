@@ -31,8 +31,9 @@ f_getScatter <- function(dels, refDate, datesFrame,
     mutate(Del = round(last(PortIndex)/first(PortIndex)-1,4)*100,
            SAA = round(last(SAAIndex)/first(SAAIndex)-1,4)*100) %>%
     filter(Date == max(Date)) %>%
-    select(DelCode, Del, SAA, Manager = DelegateManager) %>%
-    pivot_longer(-c(DelCode, Manager)) %>%
+    left_join(MAP[, c("DelCode", "AssetClass")], by = "DelCode") %>%
+    select(DelCode, Del, SAA, Manager = DelegateManager, AssetClass) %>%
+    pivot_longer(-c(DelCode, Manager, AssetClass)) %>%
     pivot_wider(names_from = name, values_from = value)
   
   minC <- min(min(thisRetsSet$SAA), min(thisRetsSet$Del))
@@ -49,7 +50,7 @@ f_getScatter <- function(dels, refDate, datesFrame,
     geom_polygon(aes(x = x, y = y), data = trsup, fill = "light green", alpha = 0.1) + 
     geom_polygon(aes(x = x, y = y), data = trinf, fill = "red", alpha = 0.1) + 
     geom_point(aes(x = SAA, y = Del), data = enhDot, color = "black", size = 4, shape = 1) +
-    geom_point(aes(x = SAA, y = Del, color = Manager), data = thisRetsSet) +
+    geom_point(aes(x = SAA, y = Del, color = Manager, shape = AssetClass), size = 2, data = thisRetsSet) +
     geom_text_repel(aes(x = SAA, y = Del, label = DelCode, color = Manager), data = thisRetsSet) +
     theme_bw() +
     labs(x = "SAA", y = "Portfolio")
