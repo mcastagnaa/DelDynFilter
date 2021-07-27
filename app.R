@@ -82,7 +82,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                               weekstart = 1)),
                              column(3, selectInput("datesGroup",
                                                    "Periods: 1 or more",
-                                                   c("1d", "1w", "1m", "3m", "6m", "MtD", "YtD", "QtD", "SI"),
+                                                   c("1d", "1w", "1m", "3m", "6m", "1y","MtD", "YtD", "QtD", "SI"),
                                                    multiple = T,
                                                    selected = c("1d", "1w", "MtD", "YtD", "QtD", "SI")))),
                     div(paste("Main Table: Click on the table to get the chart/CAPM statistics of that",
@@ -94,7 +94,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                       tabPanel("Charts/Stats",
                                br(),
                                fluidRow(column(3, selectInput("chartFrame", "Select time frame:", 
-                                                              choices = c("1d", "1w", "1m", "3m", "6m", 
+                                                              choices = c("1d", "1w", "1m", "3m", "6m", "1y",
                                                                           "MtD", "YtD", "QtD", "SI", "Custom ..."),
                                                               selected = "YtD",
                                                               multiple = F)),
@@ -160,8 +160,16 @@ server <- function(input, output, session) {
   observeEvent(input$chartFrame, {
     if(input$chartFrame == "Custom ...") {
       enable("startCust")
+    } else if(input$chartFrame == "SI") {
+      stCust <- as.Date("2000-12-31")
+
+      updateDateInput(session, "startCust", 
+                      label = "Start date:",
+                      value = stCust)
+      disable("startCust")
     } else {
       stCust <- datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
+      #trick for YtD
       if (is.na(stCust)) {
         stCust <- max(RETS$Date[RETS$Date <= as.Date(format(input$refDate, "%Y-01-01"))-1])
       }
@@ -185,14 +193,15 @@ server <- function(input, output, session) {
     m1 <- max(RETS$Date[RETS$Date <= (input$refDate-months(1))])
     m3 <- max(RETS$Date[RETS$Date <= (input$refDate-months(3))])
     m6 <- max(RETS$Date[RETS$Date <= (input$refDate-months(6))])
+    y1 <- max(RETS$Date[RETS$Date <= (input$refDate-months(12))])
     QtD <- max(RETS$Date[RETS$Date <= (yq(quarter(input$refDate, with_year = TRUE)) - days(1))])
     MtD <- max(RETS$Date[RETS$Date <= as.Date(format(input$refDate, "%Y-%m-01"))-1])
     YtD <- max(RETS$Date[RETS$Date <= as.Date(format(input$refDate, "%Y-01-01"))-1])
     
-    datesResult$datesFrame <- data.frame(Label = c("1d", "1w", "1m", "3m", "6m","MtD", "YtD", "QtD"),
-                                         Date = c(d1, w1, m1, m3, m6, MtD, YtD, QtD),
+    datesResult$datesFrame <- data.frame(Label = c("1d", "1w", "1m", "3m", "6m", "1y", "MtD", "YtD", "QtD"),
+                                         Date = c(d1, w1, m1, m3, m6, y1, MtD, YtD, QtD),
                                          stringsAsFactors = F)
-    rm(d1, w1, m1, m3, m6, QtD, MtD, YtD)
+    rm(d1, w1, m1, m3, m6, y1, QtD, MtD, YtD)
     })
   
   output$groupings <- renderText({
@@ -235,6 +244,7 @@ server <- function(input, output, session) {
           if("1m" %in% framesSelected$selFrames) th(colspan = 3, '1 Month'),
           if("3m" %in% framesSelected$selFrames) th(colspan = 3, '3 Months'),
           if("6m" %in% framesSelected$selFrames) th(colspan = 3, '6 Months'),
+          if("1y" %in% framesSelected$selFrames) th(colspan = 3, '1 Year'),
           if("MtD" %in% framesSelected$selFrames) th(colspan = 3, 'MtD'),
           if("QtD" %in% framesSelected$selFrames) th(colspan = 3, 'QtD'),
           if("YtD" %in% framesSelected$selFrames) th(colspan = 3, 'YtD'),
@@ -257,7 +267,7 @@ server <- function(input, output, session) {
     req(length(input$table_cell_clicked) > 0)
 
     startDate <- if(input$chartFrame == "SI") {
-      as.Date("1900-01-01")
+      as.Date("2000-12-31")
     } else datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
     
     return(tableData$fullMap[as.numeric(input$table_cell_clicked["row"]),"DelCode"])
@@ -274,9 +284,9 @@ server <- function(input, output, session) {
     req(length(input$table_rows_selected) > 0)
     
     startDate <- if(input$chartFrame == "SI") {
-      as.Date("1900-01-01")
+      "2000-12-31"
     } else if (input$chartFrame == "Custom ...") {
-      as.Date(input$startCust)
+      input$startCust
       } else datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
     
     return(f_getRetsTS(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
@@ -293,7 +303,8 @@ server <- function(input, output, session) {
     
     f_getScatter(as.data.frame(tableData$fullMap[,1]), 
                  input$refDate, datesResult$datesFrame, 
-                 input$chartFrame, input$startCust,
+                 input$chartFrame, 
+                 input$startCust,
                  as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))
     
   })
@@ -302,9 +313,9 @@ server <- function(input, output, session) {
     req(length(input$table_rows_selected) > 0)
     
     startDate <- if(input$chartFrame == "SI") {
-      as.Date("1900-01-01")
+      "2000-12-31"
     } else if (input$chartFrame == "Custom ...") {
-      as.Date(input$startCust)
+      input$startCust
     } else datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
 
     f_getRetsStats(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),

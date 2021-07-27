@@ -21,13 +21,17 @@
 f_getScatter <- function(dels, refDate, datesFrame, 
                          chartFrame, custStart, delCode) {
   
-  thisDates <- c(refDate, datesFrame$Date[datesFrame$Label %in% chartFrame])
+  startDate <- if(length(datesFrame$Date[datesFrame$Label %in% chartFrame]) == 0) {
+    custStart
+  } else datesFrame$Date[datesFrame$Label %in% chartFrame]
   
+  thisDates <- c(startDate, refDate)
+
   thisRetsSet <- RETS %>%
     filter(DelCode %in% dels$DelCode) %>%
-    {if (chartFrame == "Custom ...") filter(., Date %in% c(custStart, refDate)) else filter(., Date %in% thisDates)} %>%
-    arrange(Date) %>%
     group_by(DelCode) %>%
+    {if (chartFrame != c("SI")) filter(., Date %in% thisDates) else filter(., Date %in% c(refDate, min(Date)))} %>%
+    arrange(Date) %>%
     mutate(Del = round(last(PortIndex)/first(PortIndex)-1,4)*100,
            SAA = round(last(SAAIndex)/first(SAAIndex)-1,4)*100) %>%
     filter(Date == max(Date)) %>%
@@ -36,8 +40,8 @@ f_getScatter <- function(dels, refDate, datesFrame,
     pivot_longer(-c(DelCode, Manager, AssetClass)) %>%
     pivot_wider(names_from = name, values_from = value)
   
-  minC <- min(min(thisRetsSet$SAA), min(thisRetsSet$Del))
-  maxC <- max(max(thisRetsSet$SAA), max(thisRetsSet$Del))
+  minC <- min(thisRetsSet$SAA, thisRetsSet$Del)
+  maxC <- max(thisRetsSet$SAA, thisRetsSet$Del)
   
   trsup <- data.frame(x=c(minC, minC, maxC), y=c(minC, maxC, maxC))
   trinf <- data.frame(x=c(minC, maxC, maxC),y=c(minC, minC, maxC))
@@ -51,7 +55,7 @@ f_getScatter <- function(dels, refDate, datesFrame,
     geom_polygon(aes(x = x, y = y), data = trinf, fill = "red", alpha = 0.1) + 
     geom_point(aes(x = SAA, y = Del), data = enhDot, color = "black", size = 4, shape = 1) +
     geom_point(aes(x = SAA, y = Del, color = Manager, shape = AssetClass), size = 2, data = thisRetsSet) +
-    geom_text_repel(aes(x = SAA, y = Del, label = DelCode, color = Manager), data = thisRetsSet) +
+    geom_text_repel(aes(x = SAA, y = Del, label = DelCode, color = Manager), data = thisRetsSet, max.overlaps = 100) +
     theme_bw() +
     labs(x = "SAA", y = "Portfolio")
   
