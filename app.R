@@ -17,6 +17,7 @@ source("f_getTable.R")
 source("f_getScatter_v2.R")
 source("f_getRetsTS.R")
 source("f_getRetsStats.R")
+source("f_getDiscPeriod.R")
 
 dims <- data.frame(Name = c("Manager", "Asset Class", "Region", "Style", "Fund"),
                    Codes = c("mgrName", "AssetClass", "Region", "Style", "FundName"),
@@ -107,10 +108,12 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                br(),
                                h4("CAPM statistics on weekly returns"),
                                h6("(Returns, Alphas and Tracking error x 100)"),
-                               div(tableOutput("selectStats"), style = "font-size:70%")),
+                               div(tableOutput("selectStats"), style = "font-size:70%"),
+                               br(),
+                               plotOutput("discPeriod")),
                       tabPanel("Delegates full map",
                                div(dataTableOutput("fullMap"), style = "font-size:70%"))
-                      )
+                    )
                   , width = 8))
 )
 
@@ -321,6 +324,21 @@ server <- function(input, output, session) {
     f_getRetsStats(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
                    refDate = format(input$refDate, "%Y-%m-%d"), 
                    startDate = format(as.Date(startDate), "%Y-%m-%d"))
+  })
+  
+  output$discPeriod <- renderPlot({
+    req(length(input$table_rows_selected) > 0)
+    
+    startDate <- if(input$chartFrame == "SI") {
+      "2000-12-31"
+    } else if (input$chartFrame == "Custom ...") {
+      input$startCust
+    } else datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
+    
+    f_getDiscPeriod(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
+                    refDate = format(input$refDate, "%Y-%m-%d"), 
+                    startDate = format(as.Date(startDate), "%Y-%m-%d"))
+    
   })
 }
 
