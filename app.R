@@ -10,7 +10,7 @@ library(DT)
 library(tidyquant)
 
 rm(list = ls())
-
+options(dplyr.summarise.inform = FALSE)
 ### SETUP ######################################
 source("datamanagement.R")
 source("f_getTable.R")
@@ -18,6 +18,7 @@ source("f_getScatter_v2.R")
 source("f_getRetsTS.R")
 source("f_getRetsStats.R")
 source("f_getDiscPeriod.R")
+source("f_getAUM.R")
 
 dims <- data.frame(Name = c("Manager", "Asset Class", "Region", "Style", "Fund"),
                    Codes = c("mgrName", "AssetClass", "Region", "Style", "FundName"),
@@ -111,6 +112,15 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                div(tableOutput("selectStats"), style = "font-size:70%"),
                                br(),
                                plotOutput("discPeriod")),
+                      tabPanel("AUM",
+                               br(),
+                               fluidRow(column(6, plotOutput("AUMmgr")),
+                                        column(6, plotOutput("AUMstrat"))),
+                               fluidRow(column(6, plotOutput("AUMstratDet")),
+                                        column(6, 
+                                               br(),
+                                               h5("AUM (EUR mn) for reference date above"),
+                                               div(tableOutput("AUMlast"), style = "font-size:80%")))),
                       tabPanel("Delegates full map",
                                div(dataTableOutput("fullMap"), style = "font-size:70%"))
                     )
@@ -338,7 +348,62 @@ server <- function(input, output, session) {
     f_getDiscPeriod(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
                     refDate = format(input$refDate, "%Y-%m-%d"), 
                     startDate = format(as.Date(startDate), "%Y-%m-%d"))
+    })
+  
+  output$AUMmgr <- renderPlot({
+    startDate <- if(input$chartFrame == "SI") {
+      "2000-12-31"
+    } else if (input$chartFrame == "Custom ...") {
+      input$startCust
+    } else datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
     
+    f_getAUM(input$filter1, 
+             delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
+             refDate = format(input$refDate, "%Y-%m-%d"), 
+             startDate = format(as.Date(startDate), "%Y-%m-%d"))[1]
+  })
+  
+  output$AUMstrat <- renderPlot({
+    req(length(input$table_rows_selected) > 0)
+    
+    startDate <- if(input$chartFrame == "SI") {
+      "2000-12-31"
+    } else if (input$chartFrame == "Custom ...") {
+      input$startCust
+    } else datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
+    
+    f_getAUM(input$filter1, 
+             delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
+             refDate = format(input$refDate, "%Y-%m-%d"), 
+             startDate = format(as.Date(startDate), "%Y-%m-%d"))[2]
+  })
+  
+  output$AUMstratDet <- renderPlot({
+    req(length(input$table_rows_selected) > 0)
+    
+    startDate <- if(input$chartFrame == "SI") {
+      "2000-12-31"
+    } else if (input$chartFrame == "Custom ...") {
+      input$startCust
+    } else datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
+    
+    f_getAUM(input$filter1, 
+             delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
+             refDate = format(input$refDate, "%Y-%m-%d"), 
+             startDate = format(as.Date(startDate), "%Y-%m-%d"))[3]
+  })
+  
+  output$AUMlast <- renderTable({
+    startDate <- if(input$chartFrame == "SI") {
+      "2000-12-31"
+    } else if (input$chartFrame == "Custom ...") {
+      input$startCust
+    } else datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
+    
+    f_getAUM(input$filter1, 
+             delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
+             refDate = format(input$refDate, "%Y-%m-%d"), 
+             startDate = format(as.Date(startDate), "%Y-%m-%d"))[4]
   })
 }
 
