@@ -8,6 +8,9 @@ library(ggplot2)
 library(ggrepel)
 library(DT)
 library(tidyquant)
+library(janitor)
+library(ggcorrplot)
+
 
 rm(list = ls())
 options(dplyr.summarise.inform = FALSE)
@@ -19,6 +22,7 @@ source("f_getRetsTS.R")
 source("f_getRetsStats.R")
 source("f_getDiscPeriod.R")
 source("f_getAUM.R")
+source("f_getFundA.R")
 
 dims <- data.frame(Name = c("Manager", "Asset Class", "Region", "Style", "Fund"),
                    Codes = c("mgrName", "AssetClass", "Region", "Style", "FundName"),
@@ -122,8 +126,25 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                                h5("AUM (EUR mn) for reference date above"),
                                                div(tableOutput("AUMlast"), style = "font-size:80%")))),
                       tabPanel("Delegates full map",
-                               div(dataTableOutput("fullMap"), style = "font-size:70%"))
-                    )
+                               div(dataTableOutput("fullMap"), style = "font-size:70%")),
+                      tabPanel("Fund analysis",
+                               fluidRow(column(3, selectInput("fundName", "Select Fund:", 
+                                                              choices = MAP %>%
+                                                                group_by(FundName) %>%
+                                                                summarise(count = n()) %>%
+                                                                filter(count > 1) %>%
+                                                                select(FundName) %>%
+                                                                arrange(),
+                                                              selected = "MBB GLOBAL HIGH YIELD",
+                                                              multiple = F))),
+                               br(),
+                               fluidRow(column(6, plotOutput("FundWgtHst"))),
+                               br(),
+                               fluidRow(column(6, h5("Correlation of daily absolute returns"), 
+                                               plotOutput("absCorr")),
+                                        column(6, h5("Correlation of daily relative returns"), 
+                                               plotOutput("relCorr")))
+                    ))
                   , width = 8))
 )
 
@@ -405,6 +426,11 @@ server <- function(input, output, session) {
              refDate = format(input$refDate, "%Y-%m-%d"), 
              startDate = format(as.Date(startDate), "%Y-%m-%d"))[4]
   })
+  
+  output$FundWgtHst <- renderPlot(f_getFundA(input$fundName)[1])
+  output$absCorr <- renderPlot(f_getFundA(input$fundName)[2])
+  output$relCorr <- renderPlot(f_getFundA(input$fundName)[3])
+  
 }
 
 shinyApp(ui = ui, server = server)
