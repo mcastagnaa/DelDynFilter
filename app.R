@@ -23,6 +23,7 @@ source("f_getRetsStats.R")
 source("f_getDiscPeriod.R")
 source("f_getAUM.R")
 source("f_getFundA.R")
+source("f_getSelCorr.R")
 
 dims <- data.frame(Name = c("Manager", "Asset Class", "Region", "Style", "Fund"),
                    Codes = c("mgrName", "AssetClass", "Region", "Style", "FundName"),
@@ -115,7 +116,12 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                h6("(Returns, Alphas and Tracking error x 100)"),
                                div(tableOutput("selectStats"), style = "font-size:70%"),
                                br(),
-                               plotOutput("discPeriod")),
+                               plotOutput("discPeriod"),
+                               br(),
+                               fluidRow(column(6, h5("Daily absolute returns correlation"),
+                                               plotOutput("selAbsCorr")),
+                                        column(6, h5("Daily relative returns correlation"),
+                                               plotOutput("selRelCorr")))),
                       tabPanel("AUM",
                                br(),
                                fluidRow(column(6, plotOutput("AUMmgr")),
@@ -430,6 +436,17 @@ server <- function(input, output, session) {
   output$FundWgtHst <- renderPlot(f_getFundA(input$fundName)[1])
   output$absCorr <- renderPlot(f_getFundA(input$fundName)[2])
   output$relCorr <- renderPlot(f_getFundA(input$fundName)[3])
+  
+  output$selAbsCorr <- renderPlot({
+    req(length(input$table_rows_selected) > 1)
+    f_getSelCorr(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))[1]
+  })
+  
+  output$selRelCorr <- renderPlot({
+    req(length(input$table_rows_selected) > 1)
+    f_getSelCorr(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))[2]
+  })
+  
   
 }
 
