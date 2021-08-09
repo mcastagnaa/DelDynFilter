@@ -24,6 +24,7 @@ source("f_getDiscPeriod.R")
 source("f_getAUM.R")
 source("f_getFundA.R")
 source("f_getSelCorr.R")
+source("f_getRanks.R")
 
 dims <- data.frame(Name = c("Manager", "Asset Class", "Region", "Style", "Fund"),
                    Codes = c("mgrName", "AssetClass", "Region", "Style", "FundName"),
@@ -149,8 +150,13 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                fluidRow(column(6, h5("Correlation of daily absolute returns"), 
                                                plotOutput("absCorr")),
                                         column(6, h5("Correlation of daily relative returns"), 
-                                               plotOutput("relCorr")))
-                    ))
+                                               plotOutput("relCorr")))),
+                      tabPanel("Rankings",
+                               br(),
+                               h4("Only available for MIFL delegates where relevant"),
+                               tableOutput("ranksTable"),
+                               plotOutput("ranksChart"))
+                      )
                   , width = 8))
 )
 
@@ -447,7 +453,18 @@ server <- function(input, output, session) {
     f_getSelCorr(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))[2]
   })
   
+
+  output$ranksTable <- renderTable({
+    req(length(input$table_rows_selected) > 0)
+    f_getRanks(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))[1]
+  })
   
+  output$ranksChart <- renderPlot({
+    req(length(input$table_rows_selected) > 0)
+    f_getRanks(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))[2]
+  })
+  
+    
 }
 
 shinyApp(ui = ui, server = server)
