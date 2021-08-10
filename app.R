@@ -236,9 +236,9 @@ server <- function(input, output, session) {
   observeEvent(input$refDate, {
     d1 <- max(RETS$Date[RETS$Date <= (input$refDate-1)])
     w1 <- max(RETS$Date[RETS$Date <= (input$refDate-7)])
-    m1 <- max(RETS$Date[RETS$Date <= (input$refDate-months(1))])
-    m3 <- max(RETS$Date[RETS$Date <= (input$refDate-months(3))])
-    m6 <- max(RETS$Date[RETS$Date <= (input$refDate-months(6))])
+    m1 <- max(RETS$Date[RETS$Date <= ceiling_date(input$refDate %m-% months(1), "month")-1])
+    m3 <- max(RETS$Date[RETS$Date <= ceiling_date(input$refDate %m-% months(3), "month")-1])
+    m6 <- max(RETS$Date[RETS$Date <= ceiling_date(input$refDate %m-% months(6), "month")-1])
     y1 <- max(RETS$Date[RETS$Date <= (input$refDate-months(12))])
     QtD <- max(RETS$Date[RETS$Date <= (yq(quarter(input$refDate, with_year = TRUE)) - days(1))])
     MtD <- max(RETS$Date[RETS$Date <= as.Date(format(input$refDate, "%Y-%m-01"))-1])
