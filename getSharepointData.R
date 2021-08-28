@@ -1,3 +1,3 @@
-library(Microsoft365R)
+#library(Microsoft365R)
 
-get_sharepoint_site("https://maml.sharepoint.com/sites/PerformanceTeam/")
+#get_sharepoint_site("https://maml.sharepoint.com/sites/PerformanceTeam/")

@@ -7,7 +7,7 @@ f_getRetsStats <- function(delCode, refDate, startDate) {
   startDate <- as.Date(startDate)
   refDate <- as.Date(refDate)
 
-  stats <- RETS %>%
+  statsData <- RETS %>%
     filter(DelCode %in% delCode[,1],
            Date >= startDate,
            Date <= refDate) %>%
@@ -23,13 +23,22 @@ f_getRetsStats <- function(delCode, refDate, startDate) {
                  mutate_fun = periodReturn, 
                  period     = "weekly", 
                  col_rename = "Rets") %>%
-    pivot_wider(names_from = "Variable", values_from = "Rets") %>%
+    pivot_wider(names_from = "Variable", values_from = "Rets") 
+  
+  stats <- statsData %>%
     group_by(DelCode) %>%
     tq_performance(Ra = Port, Rb = SAA, performance_fun = table.CAPM) %>%
-    select(-c(ActivePremium, `Correlationp-value`)) %>%
+    select(-c(ActivePremium, `Correlationp-value`, TrackingError)) %>%
     mutate(Alpha = Alpha * 100,
-           AnnualizedAlpha = AnnualizedAlpha * 100,
-           TrackingError = TrackingError * 100)
+           AnnualizedAlpha = AnnualizedAlpha * 100)
+  
+  volStats <- statsData %>%
+    mutate(RR = Port - SAA) %>%
+    group_by(DelCode) %>%
+    summarise(Vol = sd(Port) * 100,
+              VolAnn = Vol * sqrt(52),
+              TE = sd(RR) * 100,
+              TEAnn = TE * sqrt(52))
   
   rets <- RETS %>%
     filter(DelCode %in% delCode[,1],
@@ -41,9 +50,9 @@ f_getRetsStats <- function(delCode, refDate, startDate) {
     summarise(Port = round(last(PortIndex)/first(PortIndex)-1, 4)*100,
               SAA = round(last(SAAIndex)/first(SAAIndex)-1, 4)*100,
               ER = Port-SAA) %>%
+    left_join(volStats, by = "DelCode") %>%
     left_join(stats, by = "DelCode")
   
-  
-  return(rets)
+    return(rets)
 }
 

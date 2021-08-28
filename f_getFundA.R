@@ -42,6 +42,14 @@ f_getFundA <- function(fundName) {
            Total != 0) %>%
     select(-c(wday, Total))
   
+  volStats <- FundRetsData %>%
+    select(Manager, Port, RR) %>%
+    group_by(Manager) %>%
+    summarise(Vol = sd(Port) * 100,
+              VolAnn = Vol * sqrt(52),
+              TE = sd(RR) * 100,
+              TEAnn = TE * sqrt(52))
+  
   FundData <- FundRetsData %>%
     select(Manager, Date, Port) %>%
     pivot_wider(names_from = Manager, values_from = Port) %>%
@@ -68,6 +76,6 @@ f_getFundA <- function(fundName) {
                         tl.cex = 6, lab_size = 2,
                         p.mat = cor_pmat(FundData))
   
-  return(list(FundWgtH, absCorr, relCorr))
+  return(list(FundWgtH, absCorr, relCorr, volStats))
 }
 

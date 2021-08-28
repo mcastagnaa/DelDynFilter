@@ -145,7 +145,9 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                                               selected = "MBB GLOBAL HIGH YIELD",
                                                               multiple = F))),
                                br(),
-                               fluidRow(column(6, plotOutput("FundWgtHst"))),
+                               fluidRow(column(6, plotOutput("FundWgtHst")),
+                                        column(6, h5("Realized volatility and tracking error"),
+                                               tableOutput("volStats"))),
                                br(),
                                fluidRow(column(6, h5("Correlation of daily absolute returns"), 
                                                plotOutput("absCorr")),
@@ -442,6 +444,7 @@ server <- function(input, output, session) {
   output$FundWgtHst <- renderPlot(f_getFundA(input$fundName)[1])
   output$absCorr <- renderPlot(f_getFundA(input$fundName)[2])
   output$relCorr <- renderPlot(f_getFundA(input$fundName)[3])
+  output$volStats <- renderTable(f_getFundA(input$fundName)[4])
   
   output$selAbsCorr <- renderPlot({
     req(length(input$table_rows_selected) > 1)
