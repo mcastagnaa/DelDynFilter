@@ -10,7 +10,7 @@ library(DT)
 library(tidyquant)
 library(janitor)
 library(ggcorrplot)
-
+#library(Microsoft365R)
 
 rm(list = ls())
 options(dplyr.summarise.inform = FALSE)
@@ -25,6 +25,7 @@ source("f_getAUM.R")
 source("f_getFundA.R")
 source("f_getSelCorr.R")
 source("f_getRanks.R")
+source("f_delComp.R")
 
 dims <- data.frame(Name = c("Manager", "Asset Class", "Region", "Style", "Fund"),
                    Codes = c("mgrName", "AssetClass", "Region", "Style", "FundName"),
@@ -122,7 +123,10 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                fluidRow(column(6, h5("Daily absolute returns correlation"),
                                                plotOutput("selAbsCorr")),
                                         column(6, h5("Daily relative returns correlation"),
-                                               plotOutput("selRelCorr")))),
+                                               plotOutput("selRelCorr"))),
+                               hr(),
+                               h4("Comparison with Fusion-based and delegates-based monthly returns"),
+                               plotOutput("delDataComp")),
                       tabPanel("AUM",
                                br(),
                                fluidRow(column(6, plotOutput("AUMmgr")),
@@ -132,8 +136,6 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                                br(),
                                                h5("AUM (EUR mn) for reference date above"),
                                                div(tableOutput("AUMlast"), style = "font-size:80%")))),
-                      tabPanel("Delegates full map",
-                               div(dataTableOutput("fullMap"), style = "font-size:70%")),
                       tabPanel("Fund analysis",
                                fluidRow(column(3, selectInput("fundName", "Select Fund:", 
                                                               choices = MAP %>%
@@ -157,9 +159,12 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                br(),
                                h4("Only available for MIFL delegates where relevant"),
                                tableOutput("ranksTable"),
-                               plotOutput("ranksChart"))
-                      )
-                  , width = 8))
+                               plotOutput("ranksChart")),
+                      tabPanel("Delegates full map",
+                               div(dataTableOutput("fullMap"), style = "font-size:70%"),
+                               hr(),
+                               div(dataTableOutput("exceptMap"), style = "font-size:80%")))
+                    , width = 8))
 )
 
 server <- function(input, output, session) {
@@ -266,6 +271,12 @@ server <- function(input, output, session) {
       {if (input$filter3 == "Live") filter(., is.na(EndDate)|EndDate > input$refDate) else .} %>%
       select(DelCode, SAACode = RimesBlendID, AM = mgrName, AssetClass, Region, Style, StartDate, EndDate,
              SAAdef,FundName),
+    rownames = FALSE,
+    filter= "bottom",
+    class = "compact")
+  
+  output$exceptMap <- renderDataTable(
+    EXCP,
     rownames = FALSE,
     filter= "bottom",
     class = "compact")
@@ -467,7 +478,10 @@ server <- function(input, output, session) {
     f_getRanks(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))[2]
   })
   
-    
+  output$delDataComp <- renderPlot({
+    req(length(input$table_rows_selected) > 0)
+    f_delComp(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))
+  })
 }
 
 shinyApp(ui = ui, server = server)

@@ -1,6 +1,6 @@
-# delCode = as.data.frame(c('701880','701879'))
-# refDate <- as.Date("2021-07-13")
-# startDate <- as.Date("2020-12-31")
+delCode = as.data.frame(c('701880','701879'))
+refDate <- as.Date("2021-07-13")
+startDate <- as.Date("2020-12-31")
 
 f_getRetsStats <- function(delCode, refDate, startDate) {
   
@@ -32,13 +32,18 @@ f_getRetsStats <- function(delCode, refDate, startDate) {
     mutate(Alpha = Alpha * 100,
            AnnualizedAlpha = AnnualizedAlpha * 100)
   
+  sharpe <- statsData %>%
+    group_by(DelCode) %>%
+    tq_performance(Ra = Port, Rf = 0, performance_fun = SharpeRatio, FUN = "StdDev") %>%
+    rename(Sharpe = `StdDevSharpe(Rf=0%,p=95%)`) 
+  
   volStats <- statsData %>%
     mutate(RR = Port - SAA) %>%
     group_by(DelCode) %>%
     summarise(Vol = sd(Port) * 100,
               VolAnn = Vol * sqrt(52),
               TE = sd(RR) * 100,
-              TEAnn = TE * sqrt(52))
+              TEAnn = TE * sqrt(52)) 
   
   rets <- RETS %>%
     filter(DelCode %in% delCode[,1],
@@ -51,7 +56,8 @@ f_getRetsStats <- function(delCode, refDate, startDate) {
               SAA = round(last(SAAIndex)/first(SAAIndex)-1, 4)*100,
               ER = Port-SAA) %>%
     left_join(volStats, by = "DelCode") %>%
-    left_join(stats, by = "DelCode")
+    left_join(stats, by = "DelCode") %>%
+    left_join(sharpe, by = "DelCode")
   
     return(rets)
 }
