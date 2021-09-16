@@ -1,12 +1,16 @@
-#site <- get_sharepoint_site(site_id = "dc4edaeb-1257-40ab-8758-018b7b5bda5a")
-#get_sharepoint_site(site_name = "https://maml.sharepoint.com/PerformanceTeam/")
-#docs <- site$get_drive()
+site <- tryCatch(get_sharepoint_site(site_id = "dc4edaeb-1257-40ab-8758-018b7b5bda5a"),
+                 error = function(e) e)
 
-# dest <- tempfile("whatever.Rda")
-# docs$download_file("Stuff/DelSet.Rda", dest=dest)
-# load(dest)
+if(typeof(site)== "environment") {
+  docs <- site$get_drive()
+  
+  ## dest <- tempfile("whatever.Rda")
+  # docs$download_file("Stuff/DelSet.Rda", dest=dest)
+  # load(dest)
+  
+  docs$download_file("Stuff/DelSet.Rda", overwrite = T)
+}
 
-#docs$download_file("Stuff/DelSet.Rda", overwrite = T)
 load("DelSet.Rda")
 
 FUNDS <- RETS %>%

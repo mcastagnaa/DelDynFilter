@@ -1,3 +1,7 @@
+## TO DO
+# Comparison with delegate: only if one external delegate is selected
+# Add filter for only reasonable delegates to be considered
+
 library(shiny)
 library(shinyjs)
 library(shinythemes)
@@ -10,7 +14,7 @@ library(DT)
 library(tidyquant)
 library(janitor)
 library(ggcorrplot)
-#library(Microsoft365R)
+library(Microsoft365R)
 
 rm(list = ls())
 options(dplyr.summarise.inform = FALSE)
@@ -56,12 +60,16 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                  "Live Filter",
                                  choices = c("Live", "All"),
                                  selected = "Live"),
+                    radioButtons("filter4",
+                                 "Include accounts with issues? [NA]",
+                                 choices = c("Yes", "No"),
+                                 selected = "No"),
                     hr(),
                     selectInput("filter1",
                                 "Managers: 1 or more",
                                 sort(unique(MAP$mgrName)),
                                 multiple = T,
-                                selected = "MIFL"),
+                                selected = unique(MAP$mgrName)),
                     hr(),
                     selectInput("Group1", 
                                 "Grouping 1:", 
@@ -269,8 +277,11 @@ server <- function(input, output, session) {
     MAP %>%
       {if (input$filter2 == "Main") filter(., IsRepresentative) else .} %>%
       {if (input$filter3 == "Live") filter(., is.na(EndDate)|EndDate > input$refDate) else .} %>%
+      mutate(IsRepresentative = ifelse(IsRepresentative == 1, "TRUE", "FALSE"),
+             IsFund = ifelse(IsFund == 1, "TRUE", "FALSE"),
+             IsAdvisory = ifelse(IsAdvisory == 1, "TRUE", "FALSE")) %>%
       select(DelCode, SAACode = RimesBlendID, AM = mgrName, AssetClass, Region, Style, StartDate, EndDate,
-             SAAdef,FundName),
+             SAAdef,FundName, Main = IsRepresentative, IsFund, IsAdvisory),
     rownames = FALSE,
     filter= "bottom",
     class = "compact")
