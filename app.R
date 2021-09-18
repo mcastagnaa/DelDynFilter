@@ -1,6 +1,4 @@
 ## TO DO
-# Comparison with delegate: only if one external delegate is selected
-# Add filter for only reasonable delegates to be considered
 
 library(shiny)
 library(shinyjs)
@@ -61,7 +59,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                  choices = c("Live", "All"),
                                  selected = "Live"),
                     radioButtons("filter4",
-                                 "Include accounts with issues? [NA]",
+                                 "Include accounts with issues?",
                                  choices = c("Yes", "No"),
                                  selected = "No"),
                     hr(),
@@ -106,6 +104,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                               "delegate returns for the time frame specificed."), style ="color: red;"),
                     div(DTOutput("table"), style = "font-size:70%"),
                     br(),
+                    #verbatimTextOutput("tableSelection", placeholder = FALSE),
                     tabsetPanel(
                       type = "tabs",
                       tabPanel("Charts/Stats",
@@ -299,7 +298,7 @@ server <- function(input, output, session) {
                         dims$Code[dims$Name == input$Group4]),
                       "")
   
-    tableData$fullMap <- f_getTable(groups, input$filter1, input$filter2, input$filter3,
+    tableData$fullMap <- f_getTable(groups, input$filter1, input$filter2, input$filter3, input$filter4, 
                input$refDate, datesResult$datesFrame, input$chartFrame, input$datesGroup)
     
     return(tableData$fullMap)
@@ -348,6 +347,8 @@ server <- function(input, output, session) {
     #return(input$table_rows_selected)
     #return(as.data.frame(tableData$fullMap[,1]))
     #return(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))
+    #unique(MAP$mgrName[MAP$DelCode %in% as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"])[,1]])
+    
   })
   
   output$retsTS <- renderPlot({
@@ -491,6 +492,7 @@ server <- function(input, output, session) {
   
   output$delDataComp <- renderPlot({
     req(length(input$table_rows_selected) > 0)
+    req(unique(MAP$mgrName[MAP$DelCode %in% as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"])[,1]]) != "MIFL")
     f_delComp(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))
   })
 }

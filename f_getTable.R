@@ -2,18 +2,20 @@
 # input1 <- c("MIFL", "Wellington")
 # input2 <- "Main"
 # input3 <- "Live"
+# input4 <- "No"
 # refDate <- as.Date("2021-07-07")
 # ### datesFrame <- tobeloaded
 # chartFrame <- "YtD"
 # datesGroup <- c("1d", "1w", "MtD", "YtD", "QtD", "SI")
 # 
-f_getTable <- function(groups, input1, input2, input3, refDate, datesFrame, chartFrame, datesGroup) {
+f_getTable <- function(groups, input1, input2, input3, input4, refDate, datesFrame, chartFrame, datesGroup) {
   
   thisMAP <- MAP %>%
     #{if (input1 == "Internal") filter(., mgrName == "MIFL") else .} %>%
     filter(mgrName %in% input1) %>%
     {if (input2 == "Main") filter(., IsRepresentative) else .} %>%
     {if (input3 == "Live") filter(., is.na(EndDate)|EndDate > refDate) else .} %>%
+    {if (input4 == "No") filter(., !(DelCode %in% EXCP$DelCode)) else .} %>%
     arrange(across(groups)) %>%
     group_by(across(groups)) %>%
     select(DelCode, all_of(groups), DelDispName) 
