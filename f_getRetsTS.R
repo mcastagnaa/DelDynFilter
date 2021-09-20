@@ -2,12 +2,16 @@ delCode = as.data.frame(c('701880','701879', '610249'))
 refDate <- as.Date("2021-09-16")
 startDate <- as.Date("2020-12-31")
 
-f_getRetsTS <- function(delCode, refDate, startDate) {
+f_getRetsTS <- function(delCode, refDate, startDate, showCf) {
   
   startDate <- as.Date(startDate)
   refDate <- as.Date(refDate)
   
-  Hline <- data.frame(panel = c("Relative", "Absolute", "Subs-Reds (% over prev. AUM)"), Y = c(0,100,0))
+  if(showCf) {
+    Hline <- data.frame(panel = c("Relative", "Absolute", "Subs-Reds (% over prev. AUM)"), Y = c(0,100,0))
+  } else {
+    Hline <- data.frame(panel = c("Relative", "Absolute"), Y = c(0,100))
+  }
   
   cFlows <- RETS %>%
     filter(DelCode %in% delCode[,1],
@@ -35,7 +39,7 @@ f_getRetsTS <- function(delCode, refDate, startDate) {
            DelCode = as.character(DelCode)) %>%
     ggplot() +
     geom_hline(data = Hline, aes(yintercept = Y), color = "dark grey", linetype = "dashed") +
-    geom_bar(data = cFlows, stat = "identity", aes(x = Date, y = CashflowPerc, color = DelCode), fill = NA) +
+    {if(showCf) geom_bar(data = cFlows, stat = "identity", aes(x = Date, y = CashflowPerc, color = DelCode), fill = NA)} +
     geom_line(aes(x = Date, y = value,  linetype = Line, color = DelCode)) +
     facet_wrap(~panel, ncol = 1, scales="free_y") +
     theme_bw() +

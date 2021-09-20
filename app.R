@@ -119,7 +119,8 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                fluidRow(column(6, plotOutput("scatter")),
                                         #column(6, verbatimTextOutput("startDate")),
                                         #column(6, verbatimTextOutput("tableSelection")),
-                                        column(6, plotOutput("retsTS"))),
+                                        column(6, checkboxInput("cfOn", "Display cashflows", value = T),
+                                               plotOutput("retsTS"))),
                                br(),
                                h4("CAPM statistics on weekly returns"),
                                h6("(Returns, Alphas and Tracking error x 100)"),
@@ -362,7 +363,8 @@ server <- function(input, output, session) {
     
     return(f_getRetsTS(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
                        refDate = format(as.Date(input$refDate), "%Y-%m-%d"), 
-                       startDate = format(as.Date(startDate), "%Y-%m-%d")))
+                       startDate = format(as.Date(startDate), "%Y-%m-%d"),
+                       showCf = input$cfOn))
   })
   
   output$scatter <- renderPlot({
