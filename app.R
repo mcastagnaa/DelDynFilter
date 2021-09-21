@@ -13,6 +13,7 @@ library(tidyquant)
 library(janitor)
 library(ggcorrplot)
 library(Microsoft365R)
+library(shinyWidgets)
 
 rm(list = ls())
 options(dplyr.summarise.inform = FALSE)
@@ -115,12 +116,15 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                                               selected = "YtD",
                                                               multiple = F)),
                                         column(2, dateInput("startCust", "Start Date:", value = as.Date("2020-12-31"),
-                                                            format = "d-M-yy", width = "100px", weekstart = 1))),
+                                                            format = "d-M-yy", width = "100px", weekstart = 1)),
+                                        column(1, NULL),
+                                        column(6, br(),
+                                               materialSwitch("cfOn", "Display cashflows", 
+                                                              value = T, status = "primary"))),
                                fluidRow(column(6, plotOutput("scatter")),
                                         #column(6, verbatimTextOutput("startDate")),
                                         #column(6, verbatimTextOutput("tableSelection")),
-                                        column(6, checkboxInput("cfOn", "Display cashflows", value = T),
-                                               plotOutput("retsTS"))),
+                                        column(6, plotOutput("retsTS"))),
                                br(),
                                h4("CAPM statistics on weekly returns"),
                                h6("(Returns, Alphas and Tracking error x 100)"),
@@ -292,7 +296,7 @@ server <- function(input, output, session) {
     filter= "bottom",
     class = "compact")
   
-  output$table <- renderDT({
+  output$table <- renderDataTable({
     groups <- setdiff(c(dims$Code[dims$Name == input$Group1],
                         dims$Code[dims$Name == input$Group2],
                         dims$Code[dims$Name == input$Group3],
@@ -300,7 +304,7 @@ server <- function(input, output, session) {
                       "")
   
     tableData$fullMap <- f_getTable(groups, input$filter1, input$filter2, input$filter3, input$filter4, 
-               input$refDate, datesResult$datesFrame, input$chartFrame, input$datesGroup)
+               input$refDate, datesResult$datesFrame, input$chartFrame, input$datesGroup) 
     
     return(tableData$fullMap)
     },
@@ -325,12 +329,17 @@ server <- function(input, output, session) {
         )
       )
     )),
-    ######selection = "single", #list(target= "cell"), ### TAKE THIS OUT FOR MULTIPLE SELECTION (DEFAULT)
+  # %>%
+  #     formatStyle(columns = 10,
+  #                 color = styleInterval(cuts = 0, values = c("red", "green")),
+  #                 fontWeight = "bold"),
+  #####selection = "single", #list(target= "cell"), ### TAKE THIS OUT FOR MULTIPLE SELECTION (DEFAULT)
     options = list(pageLength = 10, autoWidth = TRUE),
     rownames = FALSE,
     filter= "bottom",
-    class = "compact cell-border")#,
-    #caption = paste('Main Table: Click on the table to get the chart/CAPM statistics of that',
+    class = "compact cell-border")
+  
+    #, caption = paste('Main Table: Click on the table to get the chart/CAPM statistics of that',
     #                 'delegate returns for the time frame specificed.'))
   
   output$startDate <- renderPrint({
