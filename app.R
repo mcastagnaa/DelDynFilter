@@ -29,6 +29,7 @@ source("f_getFundA.R")
 source("f_getSelCorr.R")
 source("f_getRanks.R")
 source("f_delComp.R")
+source("f_RBC_Fus.R")
 
 dims <- data.frame(Name = c("Manager", "Asset Class", "Region", "Style", "Fund"),
                    Codes = c("mgrName", "AssetClass", "Region", "Style", "FundName"),
@@ -175,7 +176,13 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                       tabPanel("Delegates full map",
                                div(dataTableOutput("fullMap"), style = "font-size:70%"),
                                hr(),
-                               div(dataTableOutput("exceptMap"), style = "font-size:80%")))
+                               div(dataTableOutput("exceptMap"), style = "font-size:80%")),
+                      tabPanel("Checks",
+                               br(),
+                               div(DTOutput("statTable"), style = "font-size:80%"),
+                               br(),
+                               #verbatimTextOutput("tableSelection", placeholder = FALSE)
+                               plotOutput("RBC_Fus")))
                     , width = 8))
 )
 
@@ -249,6 +256,9 @@ server <- function(input, output, session) {
   datesResult <- reactiveValues(datesFrame = 0)
   tableData <- reactiveValues(fullMap = 0) 
   framesSelected <- reactiveValues(selFrames = 0)
+  #statsData <- reactiveValues(statsMap = 0)
+  
+  output$selectStat <- renderText(statsData$statsMap)
   
   observeEvent(input$datesGroup, {framesSelected$selFrames <- input$datesGroup})
   
@@ -269,13 +279,11 @@ server <- function(input, output, session) {
     rm(d1, w1, m1, m3, m6, y1, QtD, MtD, YtD)
     })
   
-  output$groupings <- renderText({
-    paste("Selected groups:", paste(input$Group1, input$Group2, input$Group3, input$Group4, sep = "|"))
-    
-  })
+  # output$groupings <- renderText({
+  #   paste("Selected groups:", paste(input$Group1, input$Group2, input$Group3, input$Group4, sep = "|"))})
   
-  output$dates <- renderTable(datesResult$datesFrame %>%
-                                mutate(Date = format(Date, "%d-%h-%y")))
+  # output$dates <- renderTable(datesResult$datesFrame %>%
+  #                               mutate(Date = format(Date, "%d-%h-%y")))
   
   output$fullMap <- renderDataTable(
     MAP %>%
@@ -354,7 +362,7 @@ server <- function(input, output, session) {
   
   output$tableSelection <- renderPrint({
     #req(length(input$table_cell_clicked) > 0)
-    #return(input$table_rows_selected)
+    as.character(tTests[input$statTable_rows_selected,"DelCode"])
     #return(as.data.frame(tableData$fullMap[,1]))
     #return(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))
     #unique(MAP$mgrName[MAP$DelCode %in% as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"])[,1]])
@@ -490,7 +498,6 @@ server <- function(input, output, session) {
     f_getSelCorr(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))[2]
   })
   
-
   output$ranksTable <- renderTable({
     req(length(input$table_rows_selected) > 0)
     f_getRanks(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))[1]
@@ -505,6 +512,22 @@ server <- function(input, output, session) {
     req(length(input$table_rows_selected) > 0)
     req(unique(MAP$mgrName[MAP$DelCode %in% as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"])[,1]]) != "MIFL")
     f_delComp(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))
+  })
+  
+  output$statTable <- renderDataTable({
+    tTests %>%
+      ungroup() %>%
+      mutate_at(c("p", "mean", "max", "min"), ~ . * 100) %>%
+      mutate_if(is.numeric, ~ round(.,2))
+    },
+    server = T,
+    selection = "single",
+    rownames = FALSE,
+    filter= "bottom")
+  
+  output$RBC_Fus <- renderPlot({
+    req(length(input$statTable_rows_selected) > 0)
+    f_RBC_Fus(as.character(tTests[input$statTable_rows_selected,"DelCode"]))
   })
 }
 
