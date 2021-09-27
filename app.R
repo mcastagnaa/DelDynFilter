@@ -182,7 +182,11 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                div(DTOutput("statTable"), style = "font-size:80%"),
                                br(),
                                #verbatimTextOutput("tableSelection", placeholder = FALSE)
-                               plotOutput("RBC_Fus")))
+                               plotOutput("RBC_Fus"),
+                               br(),
+                               downloadButton("XLday", "Generate XL"),
+                               h4("Check on last date"),
+                               div(tableOutput("lastRBCFus"), style = "font-size:80%")))
                     , width = 8))
 )
 
@@ -256,11 +260,26 @@ server <- function(input, output, session) {
   datesResult <- reactiveValues(datesFrame = 0)
   tableData <- reactiveValues(fullMap = 0) 
   framesSelected <- reactiveValues(selFrames = 0)
-  #statsData <- reactiveValues(statsMap = 0)
-  
-  output$selectStat <- renderText(statsData$statsMap)
+  RBCFUSdayCheck <- reactiveValues(df = 0)
   
   observeEvent(input$datesGroup, {framesSelected$selFrames <- input$datesGroup})
+  
+  observeEvent(input$refDate, {RBCFUSdayCheck$df <- Del_recon %>%
+    filter(Date == as.Date(input$refDate)) %>%
+    mutate(DelCode = as.numeric(DelCode)) %>%
+    left_join(MAP, by = "DelCode") %>%
+    mutate(DelCode = as.character(DelCode)) %>%
+    select(Date, DelCode, FundName, DelDispName, Fusion = Fus_AUM, RBC = RBC_AUM, 
+           Adjustment = NewCfl, Diff = AUMdiff, DiffPerc = AUMdiffPerc) %>%
+    mutate(Date = format(Date, "%d-%h-%y"),
+           Fusion = Fusion/1000000,
+           RBC = RBC/1000000,
+           Diff = Diff/1000000,
+           Adjustment = Adjustment/1000000,
+           DiffPerc = round(DiffPerc * 100, 3)) %>%
+    arrange(desc(abs(DiffPerc))) %>%
+    as.data.frame()
+  })
   
   observeEvent(input$refDate, {
     d1 <- max(RETS$Date[RETS$Date <= (input$refDate-1)])
@@ -278,12 +297,6 @@ server <- function(input, output, session) {
                                          stringsAsFactors = F)
     rm(d1, w1, m1, m3, m6, y1, QtD, MtD, YtD)
     })
-  
-  # output$groupings <- renderText({
-  #   paste("Selected groups:", paste(input$Group1, input$Group2, input$Group3, input$Group4, sep = "|"))})
-  
-  # output$dates <- renderTable(datesResult$datesFrame %>%
-  #                               mutate(Date = format(Date, "%d-%h-%y")))
   
   output$fullMap <- renderDataTable(
     MAP %>%
@@ -362,11 +375,10 @@ server <- function(input, output, session) {
   
   output$tableSelection <- renderPrint({
     #req(length(input$table_cell_clicked) > 0)
-    as.character(tTests[input$statTable_rows_selected,"DelCode"])
+    #as.character(tTests[input$statTable_rows_selected,"DelCode"])
     #return(as.data.frame(tableData$fullMap[,1]))
     #return(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))
     #unique(MAP$mgrName[MAP$DelCode %in% as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"])[,1]])
-    
   })
   
   output$retsTS <- renderPlot({
@@ -529,6 +541,16 @@ server <- function(input, output, session) {
     req(length(input$statTable_rows_selected) > 0)
     f_RBC_Fus(as.character(tTests[input$statTable_rows_selected,"DelCode"]))
   })
+  
+  output$lastRBCFus <- renderTable(RBCFUSdayCheck$df,
+                                   striped = T,
+                                   rownames = F,
+                                   spacing = "s")
+  
+  output$XLday <- downloadHandler(filename = "dayRBCFusion.xlsx", 
+                                  content = function(file) {
+                                    openxlsx::write.xlsx(RBCFUSdayCheck$df, file)})
 }
+
 
 shinyApp(ui = ui, server = server)
