@@ -1,12 +1,12 @@
-# groups <- c("AssetClass")
-# input1 <- c("MIFL", "Wellington")
-# input2 <- "Main"
-# input3 <- "Live"
-# input4 <- "No"
-# refDate <- as.Date("2021-07-07")
-# ### datesFrame <- tobeloaded
-# chartFrame <- "YtD"
-# datesGroup <- c("1d", "1w", "MtD", "YtD", "QtD", "SI")
+groups <- c("AssetClass")
+input1 <- c("MIFL", "Wellington")
+input2 <- "Main"
+input3 <- "Live"
+input4 <- "No"
+refDate <- as.Date("2021-07-07")
+### datesFrame <- tobeloaded
+chartFrame <- "YtD"
+datesGroup <- c("1d", "1w", "MtD", "YtD", "QtD", "SI")
 # 
 f_getTable <- function(groups, input1, input2, input3, input4, refDate, datesFrame, chartFrame, datesGroup) {
   
@@ -37,6 +37,12 @@ f_getTable <- function(groups, input1, input2, input3, input4, refDate, datesFra
     filter(Label != "Last") %>%
     select(DelCode, Label, Del, SAA, ER) %>%
     mutate(Label = factor(Label, levels = c("1d", "1w", "1m", "3m", "6m", "MtD", "QtD", "YtD", "SI"))) %>%
+    mutate(ER = if_else(
+      ER < 0, 
+      paste0("<b style='color: red; float: left;'>", ER, "</b>"),
+      paste0("<b style='color: green; float: left;'>", ER, "</b>")),
+      SAA = paste0("<style='color: black; float: left;'>", SAA),
+      Del = paste0("<style='color: black; float: left;'>", Del)) %>%
     pivot_longer(-c(DelCode, Label)) %>%
     arrange(Label) %>%
     pivot_wider(names_from = c(Label, name), values_from = value) 

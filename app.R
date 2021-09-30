@@ -1,4 +1,6 @@
 ## TO DO
+# Color-code ER columns.
+# Export XL of main table
 
 library(shiny)
 library(shinyjs)
@@ -358,7 +360,8 @@ server <- function(input, output, session) {
     options = list(pageLength = 10, autoWidth = TRUE),
     rownames = FALSE,
     filter= "bottom",
-    class = "compact cell-border")
+    class = "compact cell-border",
+  escape = F)
   
     #, caption = paste('Main Table: Click on the table to get the chart/CAPM statistics of that',
     #                 'delegate returns for the time frame specificed.'))
@@ -528,6 +531,7 @@ server <- function(input, output, session) {
   
   output$statTable <- renderDataTable({
     tTests %>%
+      filter(Date == input$refDate) %>%
       ungroup() %>%
       mutate_at(c("p", "mean", "max", "min"), ~ . * 100) %>%
       mutate_if(is.numeric, ~ round(.,2))
