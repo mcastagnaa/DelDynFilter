@@ -1,5 +1,4 @@
 ## TO DO
-# Color-code ER columns.
 # Export XL of main table
 
 library(shiny)
@@ -187,8 +186,8 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                plotOutput("RBC_Fus"),
                                br(),
                                downloadButton("XLday", "Generate XL"),
-                               h4("Check on last date"),
-                               div(tableOutput("lastRBCFus"), style = "font-size:80%")))
+                               h4("Check on last date for selected stats date|€mn|percentages"),
+                               div(dataTableOutput("lastRBCFus"), style = "font-size:80%")))
                     , width = 8))
 )
 
@@ -266,21 +265,16 @@ server <- function(input, output, session) {
   
   observeEvent(input$datesGroup, {framesSelected$selFrames <- input$datesGroup})
   
-  observeEvent(input$refDate, {RBCFUSdayCheck$df <- Del_recon %>%
-    filter(Date == as.Date(input$refDate)) %>%
-    mutate(DelCode = as.numeric(DelCode)) %>%
-    left_join(MAP, by = "DelCode") %>%
-    mutate(DelCode = as.character(DelCode)) %>%
-    select(Date, DelCode, FundName, DelDispName, Fusion = Fus_AUM, RBC = RBC_AUM, 
-           Adjustment = NewCfl, Diff = AUMdiff, DiffPerc = AUMdiffPerc) %>%
-    mutate(Date = format(Date, "%d-%h-%y"),
-           Fusion = Fusion/1000000,
-           RBC = RBC/1000000,
-           Diff = Diff/1000000,
-           Adjustment = Adjustment/1000000,
-           DiffPerc = round(DiffPerc * 100, 3)) %>%
-    arrange(desc(abs(DiffPerc))) %>%
-    as.data.frame()
+  observeEvent(input$refDate, {
+    RBCFUSdayCheck$df <- Del_recon %>%
+      filter(Date == max(tTests$Date[tTests$StatDate == as.Date(input$refDate)])) %>%
+      mutate(DelCode = as.numeric(DelCode)) %>%
+      left_join(MAP, by = "DelCode") %>%
+      mutate(DelCode = as.character(DelCode)) %>%
+      select(Date, DelCode, FundName, DelDispName, Fusion = Fus_AUM, RBC = RBC_AUM, 
+             Adjustment = NewCfl, Diff = AUMdiff, DiffPerc = AUMdiffPerc) %>%
+      arrange(desc(abs(DiffPerc))) %>%
+      as.data.frame()
   })
   
   observeEvent(input$refDate, {
@@ -531,10 +525,11 @@ server <- function(input, output, session) {
   
   output$statTable <- renderDataTable({
     tTests %>%
-      filter(Date == input$refDate) %>%
+      filter(StatDate == input$refDate) %>%
       ungroup() %>%
       mutate_at(c("p", "mean", "max", "min"), ~ . * 100) %>%
-      mutate_if(is.numeric, ~ round(.,2))
+      mutate_if(is.numeric, ~ round(.,2)) %>%
+      select(-StatDate)
     },
     server = T,
     selection = "single",
@@ -543,13 +538,23 @@ server <- function(input, output, session) {
   
   output$RBC_Fus <- renderPlot({
     req(length(input$statTable_rows_selected) > 0)
-    f_RBC_Fus(as.character(tTests[input$statTable_rows_selected,"DelCode"]))
+    
+    theseTests <- filter(tTests,  StatDate == input$refDate)
+
+    return(f_RBC_Fus(as.character(theseTests$DelCode[input$statTable_rows_selected])))
   })
   
-  output$lastRBCFus <- renderTable(RBCFUSdayCheck$df,
-                                   striped = T,
-                                   rownames = F,
-                                   spacing = "s")
+  output$lastRBCFus <- renderDataTable(RBCFUSdayCheck$df %>%
+                                         mutate(Date = format(Date, "%d-%h-%y"),
+                                                Fusion = round(Fusion/1000000,3),
+                                                RBC = round(RBC/1000000,3),
+                                                Diff = round(Diff/1000000,3),
+                                                Adjustment = round(Adjustment/1000000,3),
+                                                DiffPerc = round(DiffPerc * 100, 3)),
+                                       server = T,
+                                       selection = "single",
+                                       rownames = FALSE,
+                                       filter= "bottom")
   
   output$XLday <- downloadHandler(filename = "dayRBCFusion.xlsx", 
                                   content = function(file) {
