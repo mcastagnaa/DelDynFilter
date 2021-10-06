@@ -1,5 +1,5 @@
 ## TO DO
-# Export XL of main table
+# Re-do main table with the JS datatable solution|leave table without HTML portions for XL export
 
 library(shiny)
 library(shinyjs)
@@ -102,7 +102,8 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                                    "Periods: 1 or more",
                                                    c("1d", "1w", "1m", "3m", "6m", "1y","MtD", "YtD", "QtD", "SI"),
                                                    multiple = T,
-                                                   selected = c("1d", "1w", "MtD", "YtD", "QtD", "SI")))),
+                                                   selected = c("1d", "1w", "MtD", "YtD", "QtD", "SI"))),
+                             column(3, br(), downloadButton("mainTable", "Generate XL"))),
                     div(paste("Main Table: Click on the table to get the chart/CAPM statistics of that",
                               "delegate returns for the time frame specificed."), style ="color: red;"),
                     div(DTOutput("table"), style = "font-size:70%"),
@@ -171,7 +172,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                                plotOutput("relCorr")))),
                       tabPanel("Rankings",
                                br(),
-                               h4("Only available for MIFL delegates where relevant"),
+                               h4("Only available for internal delegates where relevant"),
                                tableOutput("ranksTable"),
                                plotOutput("ranksChart")),
                       tabPanel("Delegates full map",
@@ -313,7 +314,8 @@ server <- function(input, output, session) {
     filter= "bottom",
     class = "compact")
   
-  output$table <- renderDataTable({
+  output$table <- renderDataTable(
+    {
     groups <- setdiff(c(dims$Code[dims$Name == input$Group1],
                         dims$Code[dims$Name == input$Group2],
                         dims$Code[dims$Name == input$Group3],
@@ -323,8 +325,7 @@ server <- function(input, output, session) {
     tableData$fullMap <- f_getTable(groups, input$filter1, input$filter2, input$filter3, input$filter4, 
                input$refDate, datesResult$datesFrame, input$chartFrame, input$datesGroup) 
     
-    return(tableData$fullMap)
-    },
+    datatable(tableData$fullMap,
     container = htmltools::withTags(table(
       class = 'display',
       thead(
@@ -346,19 +347,14 @@ server <- function(input, output, session) {
         )
       )
     )),
-  # %>%
-  #     formatStyle(columns = 10,
-  #                 color = styleInterval(cuts = 0, values = c("red", "green")),
-  #                 fontWeight = "bold"),
-  #####selection = "single", #list(target= "cell"), ### TAKE THIS OUT FOR MULTIPLE SELECTION (DEFAULT)
     options = list(pageLength = 10, autoWidth = TRUE),
     rownames = FALSE,
     filter= "bottom",
-    class = "compact cell-border",
-  escape = F)
-  
-    #, caption = paste('Main Table: Click on the table to get the chart/CAPM statistics of that',
-    #                 'delegate returns for the time frame specificed.'))
+    class = "compact cell-border") %>%
+      formatStyle(columns = which(grepl("ER", colnames(tableData$fullMap))),
+                  color = styleInterval(cuts = 0, values = c("red", "green")),
+                  fontWeight = "bold")
+  })
   
   output$startDate <- renderPrint({
     req(length(input$table_cell_clicked) > 0)
@@ -559,6 +555,10 @@ server <- function(input, output, session) {
   output$XLday <- downloadHandler(filename = "dayRBCFusion.xlsx", 
                                   content = function(file) {
                                     openxlsx::write.xlsx(RBCFUSdayCheck$df, file)})
+  
+  output$mainTable <- downloadHandler(filename = "mainTable.xlsx", 
+                                  content = function(file) {
+                                    openxlsx::write.xlsx(tableData$fullMap, file)})
 }
 
 
