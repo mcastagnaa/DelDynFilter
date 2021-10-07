@@ -1,5 +1,4 @@
 ## TO DO
-# Re-do main table with the JS datatable solution|leave table without HTML portions for XL export
 
 library(shiny)
 library(shinyjs)
@@ -108,7 +107,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                               "delegate returns for the time frame specificed."), style ="color: red;"),
                     div(DTOutput("table"), style = "font-size:70%"),
                     br(),
-                    #verbatimTextOutput("tableSelection", placeholder = FALSE),
+                    verbatimTextOutput("tableSelection", placeholder = FALSE),
                     tabsetPanel(
                       type = "tabs",
                       tabPanel("Charts/Stats",
@@ -281,9 +280,12 @@ server <- function(input, output, session) {
   observeEvent(input$refDate, {
     d1 <- max(RETS$Date[RETS$Date <= (input$refDate-1)])
     w1 <- max(RETS$Date[RETS$Date <= (input$refDate-7)])
-    m1 <- max(RETS$Date[RETS$Date <= ceiling_date(input$refDate %m-% months(1), "month")-1])
-    m3 <- max(RETS$Date[RETS$Date <= ceiling_date(input$refDate %m-% months(3), "month")-1])
-    m6 <- max(RETS$Date[RETS$Date <= ceiling_date(input$refDate %m-% months(6), "month")-1])
+    # m1 <- max(RETS$Date[RETS$Date <= ceiling_date(input$refDate %m-% months(1), "month")-1])
+    # m3 <- max(RETS$Date[RETS$Date <= ceiling_date(input$refDate %m-% months(3), "month")-1])
+    # m6 <- max(RETS$Date[RETS$Date <= ceiling_date(input$refDate %m-% months(6), "month")-1])
+    m1 <- max(RETS$Date[RETS$Date <= input$refDate %m-% months(1)])
+    m3 <- max(RETS$Date[RETS$Date <= input$refDate %m-% months(3)])
+    m6 <- max(RETS$Date[RETS$Date <= input$refDate %m-% months(6)])
     y1 <- max(RETS$Date[RETS$Date <= (input$refDate-months(12))])
     QtD <- max(RETS$Date[RETS$Date <= (yq(quarter(input$refDate, with_year = TRUE)) - days(1))])
     MtD <- max(RETS$Date[RETS$Date <= as.Date(format(input$refDate, "%Y-%m-01"))-1])
@@ -371,6 +373,7 @@ server <- function(input, output, session) {
     #as.character(tTests[input$statTable_rows_selected,"DelCode"])
     #return(as.data.frame(tableData$fullMap[,1]))
     #return(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))
+    return(as.data.frame(datesResult$datesFrame))
     #unique(MAP$mgrName[MAP$DelCode %in% as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"])[,1]])
   })
   
