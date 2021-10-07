@@ -8,7 +8,8 @@ refDate <- as.Date("2021-07-07")
 chartFrame <- "YtD"
 datesGroup <- c("1d", "1w", "MtD", "YtD", "QtD", "SI")
 # 
-f_getTable <- function(groups, input1, input2, input3, input4, refDate, datesFrame, chartFrame, datesGroup) {
+f_getTable <- function(groups, input1, input2, input3, input4, 
+                       refDate, datesFrame, chartFrame, datesGroup, isAnnual) {
   
   thisMAP <- MAP %>%
     #{if (input1 == "Internal") filter(., mgrName == "MIFL") else .} %>%
@@ -31,9 +32,15 @@ f_getTable <- function(groups, input1, input2, input3, input4, refDate, datesFra
     mutate(Label = ifelse(Date == min(Date) & "SI" %in% datesGroup, "SI", Label),
            Label = ifelse(Date == refDate, "Last", Label)) %>%
     filter(!is.na(Label)) %>%
-    mutate(Del = round(last(PortIndex)/PortIndex-1,4)*100,
-           SAA = round(last(SAAIndex)/SAAIndex-1,4)*100,
+    mutate(Del = last(PortIndex)/PortIndex-1,
+           SAA = last(SAAIndex)/SAAIndex-1,
+           years = as.numeric(last(Date)-Date)/365.25) %>%
+    mutate(Del = ifelse(isAnnual & years > 1, (1+Del)^(1/years)-1, Del),
+           SAA = ifelse(isAnnual & years > 1, (1+SAA)^(1/years)-1, SAA)) %>%
+    mutate(Del = round(Del, 4) * 100,
+           SAA = round(SAA, 4) * 100,
            ER = round(Del-SAA, 2)) %>%
+    select(-years) %>%
     filter(Label != "Last") %>%
     select(DelCode, Label, Del, SAA, ER) %>%
     mutate(Label = factor(Label, levels = c("1d", "1w", "1m", "3m", "6m", "MtD", "QtD", "YtD", "SI"))) %>%

@@ -1,4 +1,6 @@
 ## TO DO
+### Dates might still be a problem (leave the display of the data frame)
+### tStats over time (sparklines?)
 
 library(shiny)
 library(shinyjs)
@@ -102,7 +104,9 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                                    c("1d", "1w", "1m", "3m", "6m", "1y","MtD", "YtD", "QtD", "SI"),
                                                    multiple = T,
                                                    selected = c("1d", "1w", "MtD", "YtD", "QtD", "SI"))),
-                             column(3, br(), downloadButton("mainTable", "Generate XL"))),
+                             column(3, br(), br(), materialSwitch("annualizedOn", "Annualize (periods over 1 year)", 
+                                                            value = T, status = "primary")),
+                             column(1, br(), downloadButton("mainTable", "Generate XL"))),
                     div(paste("Main Table: Click on the table to get the chart/CAPM statistics of that",
                               "delegate returns for the time frame specificed."), style ="color: red;"),
                     div(DTOutput("table"), style = "font-size:70%"),
@@ -325,7 +329,7 @@ server <- function(input, output, session) {
                       "")
   
     tableData$fullMap <- f_getTable(groups, input$filter1, input$filter2, input$filter3, input$filter4, 
-               input$refDate, datesResult$datesFrame, input$chartFrame, input$datesGroup) 
+               input$refDate, datesResult$datesFrame, input$chartFrame, input$datesGroup, input$annualizedOn) 
     
     datatable(tableData$fullMap,
     container = htmltools::withTags(table(
