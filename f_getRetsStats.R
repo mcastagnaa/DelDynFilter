@@ -40,7 +40,8 @@ f_getRetsStats <- function(delCode, refDate, startDate) {
   volStats <- statsData %>%
     mutate(RR = Port - SAA) %>%
     group_by(DelCode) %>%
-    summarise(Vol = sd(Port) * 100,
+    summarise(Obs = n(),
+              Vol = sd(Port) * 100,
               VolAnn = Vol * sqrt(52),
               TE = sd(RR) * 100,
               TEAnn = TE * sqrt(52)) 

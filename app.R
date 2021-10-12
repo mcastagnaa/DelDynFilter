@@ -1,6 +1,7 @@
 ## TO DO
 ### Dates might still be a problem (leave the display of the data frame)
 ### tStats over time (sparklines?)
+### Export history of discrepancies upon selecting account (XL download)
 
 library(shiny)
 library(shinyjs)
@@ -187,6 +188,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                div(DTOutput("statTable"), style = "font-size:80%"),
                                br(),
                                #verbatimTextOutput("tableSelection", placeholder = FALSE)
+                               downloadButton("XLDelCount", "Generate XL"),
                                plotOutput("RBC_Fus"),
                                br(),
                                downloadButton("XLday", "Generate XL"),
@@ -266,6 +268,7 @@ server <- function(input, output, session) {
   tableData <- reactiveValues(fullMap = 0) 
   framesSelected <- reactiveValues(selFrames = 0)
   RBCFUSdayCheck <- reactiveValues(df = 0)
+  RBCFUSDelCode <- reactiveValues(df = 0)
   
   observeEvent(input$datesGroup, {framesSelected$selFrames <- input$datesGroup})
   
@@ -543,6 +546,10 @@ server <- function(input, output, session) {
     req(length(input$statTable_rows_selected) > 0)
     
     theseTests <- filter(tTests,  StatDate == input$refDate)
+    
+    RBCFUSDelCode$df <- Del_recon %>%
+        filter(DelCode == as.character(theseTests$DelCode[input$statTable_rows_selected])) %>%
+        arrange(Date)
 
     return(f_RBC_Fus(as.character(theseTests$DelCode[input$statTable_rows_selected])))
   })
@@ -562,6 +569,10 @@ server <- function(input, output, session) {
   output$XLday <- downloadHandler(filename = "dayRBCFusion.xlsx", 
                                   content = function(file) {
                                     openxlsx::write.xlsx(RBCFUSdayCheck$df, file)})
+  
+  output$XLDelCount <- downloadHandler(filename = "Code_Date.xlsx", 
+                                       content = function(file) {
+                                         openxlsx::write.xlsx(RBCFUSDelCode$df, file)})
   
   output$mainTable <- downloadHandler(filename = "mainTable.xlsx", 
                                   content = function(file) {
