@@ -1,7 +1,5 @@
 ## TO DO
 ### Dates might still be a problem (leave the display of the data frame)
-### tStats over time (sparklines?)
-### Export history of discrepancies upon selecting account (XL download)
 
 library(shiny)
 library(shinyjs)
@@ -41,6 +39,7 @@ dims <- data.frame(Name = c("Manager", "Asset Class", "Region", "Style", "Fund")
 ################################################
 
 ui <- fluidPage(theme=shinytheme("lumen"),
+                htmlwidgets::getDependency('sparkline'),
                 useShinyjs(),
                 fluidRow(
                   column(2,
@@ -185,7 +184,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                div(dataTableOutput("exceptMap"), style = "font-size:80%")),
                       tabPanel("Checks",
                                br(),
-                               div(DTOutput("statTable"), style = "font-size:80%"),
+                               div(dataTableOutput("statTable"), style = "font-size:80%"),
                                br(),
                                #verbatimTextOutput("tableSelection", placeholder = FALSE)
                                downloadButton("XLDelCount", "Generate XL"),
@@ -530,17 +529,36 @@ server <- function(input, output, session) {
   })
   
   output$statTable <- renderDataTable({
-    tTests %>%
-      filter(StatDate == input$refDate) %>%
-      ungroup() %>%
-      mutate_at(c("p", "mean", "max", "min"), ~ . * 100) %>%
-      mutate_if(is.numeric, ~ round(.,2)) %>%
-      select(-StatDate)
-    },
-    server = T,
-    selection = "single",
-    rownames = FALSE,
-    filter= "bottom")
+    
+    cb <- htmlwidgets::JS('function(){debugger;HTMLWidgets.staticRender();}')
+    
+    sprKL <- tTests %>%
+      mutate(StatDate = as.Date(StatDate)) %>%
+      filter(StatDate <= input$refDate) %>%
+      arrange(StatDate) %>%
+      mutate(StatDate = as.numeric(StatDate),
+             t = abs(t)) %>%
+      group_by(DelCode) %>%
+      summarise("Trend" = sparkline::spk_chr(c(t),
+                                 xvalues = StatDate,
+                                 tooltipFormat = '{{x}}: {{y}}'))
+    
+    datatable(tTests %>%
+                mutate(StatDate = as.Date(StatDate)) %>%
+                filter(StatDate == input$refDate) %>%
+                mutate(t = abs(t)) %>%
+                mutate_at(c("p", "mean", "max", "min"), ~ . * 100) %>%
+                mutate_if(is.numeric, ~ round(.,2)) %>%
+                select(-StatDate) %>%
+                arrange(desc(t)) %>%
+                left_join(sprKL, by = "DelCode") %>%
+                rename(`|t|` = t),
+              escape = F,
+              options = list(drawCallback = cb),
+              #server = T,
+              selection = "single",
+              rownames = FALSE,
+              filter= "bottom")})
   
   output$RBC_Fus <- renderPlot({
     req(length(input$statTable_rows_selected) > 0)
