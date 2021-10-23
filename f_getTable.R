@@ -13,7 +13,8 @@ f_getTable <- function(groups, input1, input2, input3, input4,
   
   thisMAP <- MAP %>%
     #{if (input1 == "Internal") filter(., mgrName == "MIFL") else .} %>%
-    filter(mgrName %in% input1) %>%
+    filter(mgrName %in% input1,
+           hasRets) %>%
     {if (input2 == "Main") filter(., IsRepresentative) else .} %>%
     {if (input3 == "Live") filter(., is.na(EndDate)|EndDate > refDate) else .} %>%
     {if (input4 == "No") filter(., !(DelCode %in% EXCP$DelCode)) else .} %>%

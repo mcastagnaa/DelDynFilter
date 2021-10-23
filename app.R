@@ -1,5 +1,5 @@
 ## TO DO
-### Dates might still be a problem (leave the display of the data frame)
+### Keep checking dates might still be a problem (leave the display of the data frame)
 
 library(shiny)
 library(shinyjs)
@@ -44,12 +44,13 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                 fluidRow(
                   column(2,
                          br(), br(),
-                         div(img(src = "logo.png", width = "100")), style="text-align: center;"),
+                         div(img(src = "logo.png", width = "100")),
+                         br(), br(), style="text-align: center;"),
                   column(10,
                          titlePanel("Managed account returns dashboard"),
-                         h5("MIFL manager -> internal sleeves"),
-                         h5("non-MIFL manager -> external delegates"),
-                         h6("Data as per Fusion (Portfolio) and Rimes (SAA) extracts", style ="color: red;"),
+                         #h5("MIFL manager -> internal sleeves"),
+                         #h5("non-MIFL manager -> external delegates"),
+                         #h6("Data as per Fusion (Portfolio) and Rimes (SAA) extracts", style ="color: red;"),
                          hr())
                 ),
                 sidebarLayout(
@@ -110,8 +111,8 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                     div(paste("Main Table: Click on the table to get the chart/CAPM statistics of that",
                               "delegate returns for the time frame specificed."), style ="color: red;"),
                     div(DTOutput("table"), style = "font-size:70%"),
-                    br(),
-                    verbatimTextOutput("tableSelection", placeholder = FALSE),
+                    #br(),
+                    #verbatimTextOutput("tableSelection", placeholder = FALSE),
                     tabsetPanel(
                       type = "tabs",
                       tabPanel("Charts/Stats",
@@ -157,6 +158,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                       tabPanel("Fund analysis",
                                fluidRow(column(3, selectInput("fundName", "Select Fund:", 
                                                               choices = MAP %>%
+                                                                filter(hasRets) %>%
                                                                 group_by(FundName) %>%
                                                                 summarise(count = n()) %>%
                                                                 filter(count > 1) %>%
@@ -197,6 +199,26 @@ ui <- fluidPage(theme=shinytheme("lumen"),
 )
 
 server <- function(input, output, session) {
+  
+  showModal(modalDialog(
+    title = "Data information",
+    tags$ul(
+      tags$li(paste("Returns available for", length(unique(RETS$DelCode)), "delegates")),
+      tags$li(paste("Last checks statistics:", format(max(tTests$StatDate), "%d-%h-%y"))),
+      tags$li(paste("Last returns:", format(max(RETS$Date), "%d-%h-%y"))),
+      tags$li("Live accounts without returns:",
+              div(MAP[!is.na(MAP$SophisID) &
+                        is.na(MAP$EndDate) &
+                        !(MAP$DelCode %in% RETS$DelCode)
+                        , c("DelCode", "mgrName")])),
+      tags$li("Delegates with issues (odd returns/mismatch vs. delegates info):", 
+              length(EXCP$DelCode)),
+      tags$li("Delegates with issues (significant deviation vs. RBC valuations):",
+              length(tTests$DelCode[tTests$StatDate == max(tTests$StatDate) &
+                                      abs(tTests$t)>=2]))
+    )
+  ))
+  
   observeEvent(input$Group1, {
     if(nchar(input$Group1) > 0){
       enable("Group2")
@@ -311,7 +333,7 @@ server <- function(input, output, session) {
              IsFund = ifelse(IsFund == 1, "TRUE", "FALSE"),
              IsAdvisory = ifelse(IsAdvisory == 1, "TRUE", "FALSE")) %>%
       select(DelCode, SAACode = RimesBlendID, AM = mgrName, AssetClass, Region, Style, StartDate, EndDate,
-             SAAdef,FundName, Main = IsRepresentative, IsFund, IsAdvisory),
+             SAAdef,FundName, Main = IsRepresentative, IsFund, IsAdvisory, hasRets),
     rownames = FALSE,
     filter= "bottom",
     class = "compact")

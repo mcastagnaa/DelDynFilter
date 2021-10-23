@@ -21,7 +21,12 @@ FUNDS <- RETS %>%
 MAP <- MAP %>%
   mutate(IsRepresentative = IsRepresentative == 1,
          DelDispName = paste(mgrName, AssetClass, Region, Style, sep = "|")) %>%
-  filter(DelCode %in% RETS$DelCode) %>%
+  mutate(hasRets = DelCode %in% RETS$DelCode) %>%
+  #filter(DelCode %in% RETS$DelCode) %>%
   left_join(FUNDS, by = "DBCode")  #%>%
   #filter(!(DelCode %in% EXCP$DelCode))
+
+tTests <- tTests %>%
+  mutate(Date = as.Date(Date),
+         StatDate = as.Date(StatDate))
 
