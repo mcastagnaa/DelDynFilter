@@ -133,7 +133,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                         #column(6, verbatimTextOutput("tableSelection")),
                                         column(6, plotOutput("retsTS"))),
                                br(),
-                               h4("CAPM statistics on weekly returns"),
+                               h4("CAPM statistics"),
                                h6("(Returns, Alphas and Tracking error x 100)"),
                                div(tableOutput("selectStats"), style = "font-size:70%"),
                                br(),
@@ -555,15 +555,14 @@ server <- function(input, output, session) {
     cb <- htmlwidgets::JS('function(){debugger;HTMLWidgets.staticRender();}')
     
     sprKL <- tTests %>%
-      mutate(StatDate = as.Date(StatDate)) %>%
       filter(StatDate <= input$refDate) %>%
       arrange(StatDate) %>%
       mutate(StatDate = as.numeric(StatDate),
              t = abs(t)) %>%
       group_by(DelCode) %>%
-      summarise("Trend" = sparkline::spk_chr(c(t),
+      summarise("Trend" = sparkline::spk_chr(t,
                                  xvalues = StatDate,
-                                 tooltipFormat = '{{x}}: {{y}}'))
+                                 tooltipFormat = '{{y}}'))
     
     datatable(tTests %>%
                 mutate(StatDate = as.Date(StatDate)) %>%

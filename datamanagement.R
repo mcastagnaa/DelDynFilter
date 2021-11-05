@@ -1,3 +1,10 @@
+#AzureAuth::clean_token_directory()
+#AzureGraph::delete_graph_login("maml.sharepoint.com")
+
+# token <- AzureAuth::get_azure_token(tenant = "maml.sharepoint.com", 
+#                                     resource = "https://maml.sharepoint.com/",
+#                                     app = "8d83ba2140a51fde0b9da054f011d61a")
+
 site <- tryCatch(get_sharepoint_site(site_id = "dc4edaeb-1257-40ab-8758-018b7b5bda5a"),
                  error = function(e) e)
 
@@ -12,6 +19,11 @@ if(typeof(site)== "environment") {
 }
 
 load("DelSet.Rda")
+
+RETS <- RETS %>%
+  mutate(weekday = weekdays(Date)) %>%
+  filter(!(weekday %in% c("Sunday", "Saturday"))) %>%
+  select(-weekday)
 
 FUNDS <- RETS %>%
   select(DBCode, FundName = Fund_Name) %>%

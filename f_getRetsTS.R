@@ -1,6 +1,7 @@
 delCode = as.data.frame(c('701880','701879', '610249'))
-refDate <- as.Date("2021-09-16")
-startDate <- as.Date("2020-12-31")
+refDate <- as.Date("2021-11-04")
+startDate <- as.Date("2021-10-29")
+showCf = T
 
 f_getRetsTS <- function(delCode, refDate, startDate, showCf) {
   
@@ -23,7 +24,7 @@ f_getRetsTS <- function(delCode, refDate, startDate, showCf) {
            CashflowPerc = ifelse(is.na(Cashflow), 0, Cashflow/lag(AUM)*100),
            DelCode = as.character(DelCode)) 
 
-  chart <- RETS %>%
+  chartSet <- RETS %>%
     filter(DelCode %in% delCode[,1],
            Date >= startDate,
            Date <= refDate) %>%
@@ -36,11 +37,20 @@ f_getRetsTS <- function(delCode, refDate, startDate, showCf) {
     pivot_longer(-c(Date, DelCode), names_to = "Variable") %>%
     mutate(panel = ifelse(Variable %in% c("ERIndex", "Cflow"), "Relative", "Absolute"),
            Line = ifelse(Variable == "SAAIndex", "SAA", "Portfolio"),
-           DelCode = as.character(DelCode)) %>%
+           DelCode = as.character(DelCode)) 
+  
+  lastObs <- chartSet %>%
+    top_n(1, Date) %>%
+    mutate(label = ifelse(panel == "Absolute", 
+                          paste0(round((value/100-1)*100, 2), "%"),
+                          paste(round(value,2), "%")))
+  
+  chart <- chartSet %>%
     ggplot() +
     geom_hline(data = Hline, aes(yintercept = Y), color = "dark grey", linetype = "dashed") +
     {if(showCf) geom_bar(data = cFlows, stat = "identity", aes(x = Date, y = CashflowPerc, color = DelCode), fill = NA)} +
     geom_line(aes(x = Date, y = value,  linetype = Line, color = DelCode)) +
+    geom_text_repel(aes(x = Date, y = value, label = label), data = lastObs, size = 3) +
     facet_wrap(~panel, ncol = 1, scales="free_y") +
     theme_bw() +
     labs(#title = paste(delCode,"-", MAP$mgrName[MAP$DelCode == delCode]),
