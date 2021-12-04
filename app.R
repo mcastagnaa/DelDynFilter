@@ -207,11 +207,11 @@ server <- function(input, output, session) {
       tags$li(paste("Last checks statistics:", format(max(tTests$StatDate), "%d-%h-%y"))),
       tags$li(paste("Last returns:", format(max(RETS$Date), "%d-%h-%y"))),
       tags$li("Live accounts without returns:",
-              div(MAP[!is.na(MAP$SophisID) &
+              div(paste(MAP[!is.na(MAP$SophisID) &
                         is.na(MAP$EndDate) &
                         !(MAP$DelCode %in% RETS$DelCode)
-                        , c("DelCode", "mgrName")])),
-      tags$li("Delegates with issues (odd returns/mismatch vs. delegates info):", 
+                        , c("DelCode", "mgrName")], collapse = "\n"))),
+      tags$li("Delegates with issues (odd returns/mismatch vs. delegates info):",
               length(EXCP$DelCode)),
       tags$li("Delegates with issues (significant deviation vs. RBC valuations):",
               length(tTests$DelCode[tTests$StatDate == max(tTests$StatDate) &
