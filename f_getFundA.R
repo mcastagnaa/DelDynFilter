@@ -1,4 +1,4 @@
-#fundName = "MBB GLOBAL HIGH YIELD"
+#fundName = "CH PROVIDENT 1"
 
 f_getFundA <- function(fundName) {
 
@@ -27,9 +27,9 @@ f_getFundA <- function(fundName) {
     left_join(MAP[, c("DelCode", "mgrName")], by = "DelCode") %>%
     rename(Manager= mgrName) %>%
     group_by(Date) %>%
-    select(Manager, Date, Port = PortIndex, SAA = SAAIndex) %>%
-    pivot_longer(-c(Date, Manager)) %>%
-    group_by(Manager, name) %>%
+    select(Manager, Date, Port = PortIndex, SAA = SAAIndex, DelCode) %>%
+    pivot_longer(-c(Date, Manager, DelCode)) %>%
+    group_by(Manager, name, DelCode) %>%
     tq_transmute(select     = value, 
                  mutate_fun = periodReturn, 
                  period     = "daily", 
@@ -43,16 +43,25 @@ f_getFundA <- function(fundName) {
     select(-c(wday, Total))
   
   volStats <- FundRetsData %>%
-    select(Manager, Port, RR) %>%
-    group_by(Manager) %>%
-    summarise(Vol = sd(Port) * 100,
+    select(Manager, Port, RR, DelCode) %>%
+    mutate(DelCode = as.character(DelCode)) %>%
+    group_by(Manager, DelCode) %>%
+    summarise(obs = n(),
+              Vol = sd(Port) * 100,
               VolAnn = Vol * sqrt(52),
               TE = sd(RR) * 100,
               TEAnn = TE * sqrt(52))
   
+  liveMgr <- RETS %>%
+    filter(Date == max(Date),
+           Fund_Name == fundName) %>%
+    select(DelCode)
+  
   FundData <- FundRetsData %>%
-    select(Manager, Date, Port) %>%
-    pivot_wider(names_from = Manager, values_from = Port) %>%
+    select(DelCode, Date, Port) %>%
+    filter(DelCode %in% liveMgr$DelCode) %>%
+    mutate(DelCode = paste0(DelCode, "_")) %>%
+    pivot_wider(names_from = DelCode, values_from = Port) %>%
     select(-Date) %>%
     filter(complete.cases(.))
   
@@ -64,8 +73,10 @@ f_getFundA <- function(fundName) {
                         p.mat = cor_pmat(FundData))
   
   FundData <- FundRetsData %>%
-    select(Manager, Date, RR) %>%
-    pivot_wider(names_from = Manager, values_from = RR) %>%
+    select(DelCode, Date, RR) %>%
+    filter(DelCode %in% liveMgr$DelCode) %>%
+    mutate(DelCode = paste0(DelCode, "_")) %>%
+    pivot_wider(names_from = DelCode, values_from = RR) %>%
     select(-Date) %>%
     filter(complete.cases(.))
   
@@ -76,6 +87,8 @@ f_getFundA <- function(fundName) {
                         tl.cex = 6, lab_size = 2,
                         p.mat = cor_pmat(FundData))
   
-  return(list(FundWgtH, absCorr, relCorr, volStats))
+  compCases <- nrow(FundData)
+  
+  return(list(FundWgtH, absCorr, relCorr, volStats, compCases))
 }
 

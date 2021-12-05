@@ -171,6 +171,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                         column(6, h5("Realized volatility and tracking error"),
                                                tableOutput("volStats"))),
                                br(),
+                               fluidRow(textOutput("compCasesNo")),
                                fluidRow(column(6, h5("Correlation of daily absolute returns"), 
                                                plotOutput("absCorr")),
                                         column(6, h5("Correlation of daily relative returns"), 
@@ -523,6 +524,7 @@ server <- function(input, output, session) {
   output$absCorr <- renderPlot(f_getFundA(input$fundName)[2])
   output$relCorr <- renderPlot(f_getFundA(input$fundName)[3])
   output$volStats <- renderTable(f_getFundA(input$fundName)[4])
+  output$compCasesNo <- renderText(paste("Complete cases for correlation calcs:", f_getFundA(input$fundName)[5]))
   
   output$selAbsCorr <- renderPlot({
     req(length(input$table_rows_selected) > 1)
