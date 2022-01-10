@@ -56,6 +56,6 @@ f_getRetsTS <- function(delCode, refDate, startDate, showCf) {
     labs(#title = paste(delCode,"-", MAP$mgrName[MAP$DelCode == delCode]),
          y = "", x= "")
   
-  return(chart)
+  return(list(chart, chartSet))
 }
 

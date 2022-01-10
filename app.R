@@ -125,7 +125,9 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                         column(2, dateInput("startCust", "Start Date:", value = as.Date("2020-12-31"),
                                                             format = "d-M-yy", width = "100px", weekstart = 1)),
                                         column(1, NULL),
-                                        column(6, br(),
+                                        column(2, br(),
+                                               downloadButton("idxData", "Generate XL")),
+                                        column(4, br(),
                                                materialSwitch("cfOn", "Display cashflows", 
                                                               value = T, status = "primary"))),
                                fluidRow(column(6, plotOutput("scatter")),
@@ -291,6 +293,7 @@ server <- function(input, output, session) {
   framesSelected <- reactiveValues(selFrames = 0)
   RBCFUSdayCheck <- reactiveValues(df = 0)
   RBCFUSDelCode <- reactiveValues(df = 0)
+  idxRets <- reactiveValues(df = 0)
   
   observeEvent(input$datesGroup, {framesSelected$selFrames <- input$datesGroup})
   
@@ -415,10 +418,16 @@ server <- function(input, output, session) {
       input$startCust
       } else datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
     
+    idxRets$df <- f_getRetsTS(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
+                              refDate = format(as.Date(input$refDate), "%Y-%m-%d"), 
+                              startDate = format(as.Date(startDate), "%Y-%m-%d"),
+                              showCf = input$cfOn)[2]
+    
     return(f_getRetsTS(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
                        refDate = format(as.Date(input$refDate), "%Y-%m-%d"), 
                        startDate = format(as.Date(startDate), "%Y-%m-%d"),
-                       showCf = input$cfOn))
+                       showCf = input$cfOn)[1])
+    
   })
   
   output$scatter <- renderPlot({
@@ -618,6 +627,10 @@ server <- function(input, output, session) {
   output$mainTable <- downloadHandler(filename = "mainTable.xlsx", 
                                   content = function(file) {
                                     openxlsx::write.xlsx(tableData$fullMap, file)})
+  
+  output$idxData <- downloadHandler(filename = "idxData.xlsx", 
+                                    content = function(file) {
+                                      openxlsx::write.xlsx(idxRets$df, file)})
 }
 
 
