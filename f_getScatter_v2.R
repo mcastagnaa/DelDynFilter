@@ -1,4 +1,4 @@
-# map <- data.frame(DelCode = c("642651", "702571", "701878"))
+# dels <- data.frame(DelCode = c("642651", "702571", "701878"))
 # refDate <- as.Date("2021-07-07")
 # custStart <- as.Date("2020-12-31")
 # chartFrame <- "YtD"
@@ -16,7 +16,7 @@
 #                                      Date = c(d1, w1, m1, m3, m6, MtD, YtD, QtD),
 #                                      stringsAsFactors = F)
 # rm(d1, w1, m1, m3, m6, QtD, MtD, YtD)
-# 
+
 
 f_getScatter <- function(dels, refDate, datesFrame, 
                          chartFrame, custStart, delCode) {

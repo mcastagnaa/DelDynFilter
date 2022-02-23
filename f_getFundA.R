@@ -1,4 +1,4 @@
-#fundName = "CH PROVIDENT 1"
+fundName = "CH PROVIDENT 1"
 
 f_getFundA <- function(fundName) {
 

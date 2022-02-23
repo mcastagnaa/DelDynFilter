@@ -1,8 +1,8 @@
-delCode = as.data.frame(c('701879'))
-#delCode = as.data.frame(c())
-mgrs <- c("MIFL", "Wellington", "AQR")
-refDate <- as.Date("2021-07-13")
-startDate <- as.Date("2020-12-31")
+# delCode = as.data.frame(c('701879'))
+# #delCode = as.data.frame(c())
+# mgrs <- c("MIFL", "Wellington", "AQR")
+# refDate <- as.Date("2021-07-13")
+# startDate <- as.Date("2020-12-31")
 
 f_getAUM <- function(mgrs, delCode, refDate, startDate) {
   

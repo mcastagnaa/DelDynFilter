@@ -1,7 +1,7 @@
-delCode = as.data.frame(c('701880','701879', '610249'))
-refDate <- as.Date("2021-11-04")
-startDate <- as.Date("2021-10-29")
-showCf = T
+# delCode = as.data.frame(c('701880','701879', '610249'))
+# refDate <- as.Date("2021-11-04")
+# startDate <- as.Date("2021-10-29")
+# showCf = T
 
 f_getRetsTS <- function(delCode, refDate, startDate, showCf) {
   

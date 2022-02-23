@@ -1,6 +1,6 @@
-delCode = as.data.frame(c('701880','701879'))
-refDate <- as.Date("2021-11-04")
-startDate <- as.Date("2021-10-29")
+# delCode = as.data.frame(c('701880','701879'))
+# refDate <- as.Date("2021-11-04")
+# startDate <- as.Date("2021-10-29")
 
 f_getRetsStats <- function(delCode, refDate, startDate) {
   

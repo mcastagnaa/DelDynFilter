@@ -1,5 +1,4 @@
-delCode <- data.frame(delcode = c("694832", "701878"))
-
+# delCode <- data.frame(delcode = c("694832", "701878"))
 
 f_getSelCorr <- function(delCode) {
 

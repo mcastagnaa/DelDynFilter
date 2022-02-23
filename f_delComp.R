@@ -1,4 +1,4 @@
-delCode = as.data.frame(c('689939','684491'))
+#delCode = as.data.frame(c('689939','684491'))
 
 f_delComp <- function(delCode) {
   

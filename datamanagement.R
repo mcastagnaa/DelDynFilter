@@ -5,17 +5,19 @@
 #                                     resource = "https://maml.sharepoint.com/",
 #                                     app = "8d83ba2140a51fde0b9da054f011d61a")
 
-site <- tryCatch(get_sharepoint_site(site_id = "dc4edaeb-1257-40ab-8758-018b7b5bda5a"),
-                 error = function(e) e)
-
-if(typeof(site)== "environment") {
-  docs <- site$get_drive()
+if(readline(prompt = "Connect to Sharepoint (Yes/anything)? ") == "Yes") {
+  site <- tryCatch(get_sharepoint_site(site_id = "dc4edaeb-1257-40ab-8758-018b7b5bda5a"),
+                   error = function(e) e)
   
-  ## dest <- tempfile("whatever.Rda")
-  # docs$download_file("Stuff/DelSet.Rda", dest=dest)
-  # load(dest)
-  
-  docs$download_file("Stuff/DelSet.Rda", overwrite = T)
+  if(typeof(site)== "environment") {
+    docs <- site$get_drive()
+    
+    ## dest <- tempfile("whatever.Rda")
+    # docs$download_file("Stuff/DelSet.Rda", dest=dest)
+    # load(dest)
+    
+    docs$download_file("Stuff/DelSet.Rda", overwrite = T)
+  }
 }
 
 load("DelSet.Rda")
@@ -42,3 +44,11 @@ tTests <- tTests %>%
   mutate(Date = as.Date(Date),
          StatDate = as.Date(StatDate))
 
+RANKS <- RANKS %>%
+  mutate(DelCode = as.character(DelCode))
+
+
+RBCidxData <- RBCidxData %>%
+  mutate(weekday = weekdays(Date)) %>%
+  filter(!(weekday %in% c("Sunday", "Saturday"))) %>%
+  select(-weekday)

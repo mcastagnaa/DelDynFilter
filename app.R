@@ -31,6 +31,7 @@ source("f_getSelCorr.R")
 source("f_getRanks.R")
 source("f_delComp.R")
 source("f_RBC_Fus.R")
+source("f_RBC_Fus_rets.R")
 
 dims <- data.frame(Name = c("Manager", "Asset Class", "Region", "Style", "Fund"),
                    Codes = c("mgrName", "AssetClass", "Region", "Style", "FundName"),
@@ -129,7 +130,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                                downloadButton("idxData", "Generate XL")),
                                         column(4, br(),
                                                materialSwitch("cfOn", "Display cashflows", 
-                                                              value = T, status = "primary"))),
+                                                              value = F, status = "primary"))),
                                fluidRow(column(6, plotOutput("scatter")),
                                         #column(6, verbatimTextOutput("startDate")),
                                         #column(6, verbatimTextOutput("tableSelection")),
@@ -145,6 +146,9 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                                plotOutput("selAbsCorr")),
                                         column(6, h5("Daily relative returns correlation"),
                                                plotOutput("selRelCorr"))),
+                               hr(),
+                               h4("Comparison Fusion-based RBC-based daily returns"),
+                               plotOutput("retsTSFusRBC"),
                                hr(),
                                h4("Comparison with Fusion-based and delegates-based monthly returns"),
                                plotOutput("delDataComp")),
@@ -191,7 +195,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                br(),
                                div(dataTableOutput("statTable"), style = "font-size:80%"),
                                br(),
-                               #verbatimTextOutput("tableSelection", placeholder = FALSE)
+                               #verbatimTextOutput("tableSelection", placeholder = FALSE),
                                downloadButton("XLDelCount", "Generate XL"),
                                plotOutput("RBC_Fus"),
                                br(),
@@ -208,7 +212,10 @@ server <- function(input, output, session) {
     tags$ul(
       tags$li(paste("Returns available for", length(unique(RETS$DelCode)), "delegates")),
       tags$li(paste("Last checks statistics:", format(max(tTests$StatDate), "%d-%h-%y"))),
-      tags$li(paste("Last returns:", format(max(RETS$Date), "%d-%h-%y"))),
+      tags$li(paste("Last Fusion returns:", format(max(RETS$Date), "%d-%h-%y"))),
+      tags$li(paste("Last RBC returns:", format(max(RBCidxData$Date), "%d-%h-%y"))),
+      tags$li(paste("Last RBC cashflow (trade date):", format(max(RBCflows$TradeDate), "%d-%h-%y"))),
+      tags$li(paste("Last RBC cashflow (value date):", format(max(RBCflows$ValueDate), "%d-%h-%y"))),
       tags$li("Live accounts without returns:",
               div(paste(MAP[!is.na(MAP$SophisID) &
                         is.na(MAP$EndDate) &
@@ -290,6 +297,7 @@ server <- function(input, output, session) {
   
   datesResult <- reactiveValues(datesFrame = 0)
   tableData <- reactiveValues(fullMap = 0) 
+  #tTests <- reactiveValues(df = 0)
   framesSelected <- reactiveValues(selFrames = 0)
   RBCFUSdayCheck <- reactiveValues(df = 0)
   RBCFUSDelCode <- reactiveValues(df = 0)
@@ -300,7 +308,7 @@ server <- function(input, output, session) {
   observeEvent(input$refDate, {
     RBCFUSdayCheck$df <- Del_recon %>%
       filter(Date == max(tTests$Date[tTests$StatDate == as.Date(input$refDate)])) %>%
-      mutate(DelCode = as.numeric(DelCode)) %>%
+      #mutate(DelCode = as.numeric(DelCode)) %>%
       left_join(MAP, by = "DelCode") %>%
       mutate(DelCode = as.character(DelCode)) %>%
       select(Date, DelCode, FundName, DelDispName, Fusion = Fus_AUM, RBC = RBC_AUM, 
@@ -402,12 +410,29 @@ server <- function(input, output, session) {
   
   output$tableSelection <- renderPrint({
     #req(length(input$table_cell_clicked) > 0)
-    #as.character(tTests[input$statTable_rows_selected,"DelCode"])
+    #as.character(tTests$df[input$statTable_rows_selected,"DelCode"])
+    #as.character(input$statTable_rows_selected)
     #return(as.data.frame(tableData$fullMap[,1]))
     #return(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))
-    return(as.data.frame(datesResult$datesFrame))
+    #return(as.data.frame(datesResult$datesFrame))
     #unique(MAP$mgrName[MAP$DelCode %in% as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"])[,1]])
   })
+  
+  output$retsTSFusRBC <- renderPlot({
+    req(length(input$table_rows_selected) > 0)
+    
+    startDate <- if(input$chartFrame == "SI") {
+      "2000-12-31"
+    } else if (input$chartFrame == "Custom ...") {
+      input$startCust
+    } else datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
+    
+    return(f_RBC_Fus_rets(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected, "DelCode"]),
+                          refDate = format(as.Date(input$refDate), "%Y-%m-%d"), 
+                          startDate = format(as.Date(startDate), "%Y-%m-%d"),
+                          showCf = input$cfOn))
+  })
+
   
   output$retsTS <- renderPlot({
     req(length(input$table_rows_selected) > 0)
@@ -418,12 +443,12 @@ server <- function(input, output, session) {
       input$startCust
       } else datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
     
-    idxRets$df <- f_getRetsTS(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
+    idxRets$df <- f_getRetsTS(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected, "DelCode"]),
                               refDate = format(as.Date(input$refDate), "%Y-%m-%d"), 
                               startDate = format(as.Date(startDate), "%Y-%m-%d"),
                               showCf = input$cfOn)[2]
     
-    return(f_getRetsTS(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
+    return(f_getRetsTS(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected, "DelCode"]),
                        refDate = format(as.Date(input$refDate), "%Y-%m-%d"), 
                        startDate = format(as.Date(startDate), "%Y-%m-%d"),
                        showCf = input$cfOn)[1])
@@ -572,8 +597,8 @@ server <- function(input, output, session) {
              t = abs(t)) %>%
       group_by(DelCode) %>%
       summarise("Trend" = sparkline::spk_chr(t,
-                                 xvalues = StatDate,
-                                 tooltipFormat = '{{y}}'))
+                                             xvalues = StatDate,
+                                             tooltipFormat = '{{y}}'))
     
     datatable(tTests %>%
                 mutate(StatDate = as.Date(StatDate)) %>%
