@@ -27,7 +27,7 @@ f_getScatter <- function(dels, refDate, datesFrame,
   
   thisDates <- c(startDate, refDate)
 
-  thisRetsSet <- RETS %>%
+  thisRetsSet <- RBCidxData %>%
     filter(DelCode %in% dels$DelCode) %>%
     group_by(DelCode) %>%
     {if (chartFrame != c("SI")) filter(., Date %in% thisDates) else filter(., Date %in% c(refDate, min(Date)))} %>%

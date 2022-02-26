@@ -2,7 +2,7 @@
 
 f_getSelCorr <- function(delCode) {
 
-  selRetsData <- RETS %>%
+  selRetsData <- RBCidxData %>%
     filter(DelCode %in% delCode[, 1]) %>%
     left_join(MAP[, c("DelCode", "mgrName")], by = "DelCode") %>%
     group_by(Date) %>%

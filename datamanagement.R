@@ -51,4 +51,6 @@ RANKS <- RANKS %>%
 RBCidxData <- RBCidxData %>%
   mutate(weekday = weekdays(Date)) %>%
   filter(!(weekday %in% c("Sunday", "Saturday"))) %>%
-  select(-weekday)
+  select(-weekday) %>%
+  left_join(RETS[, c("DelCode", "Date", "Fund_Name", "DelegateManager", "SAAIndex", "DBCode")], by = c("DelCode","Date")) %>%
+  rename(AUM = RBCAdj, PortIndex = NAV, Cashflow = NewCfl)

@@ -14,7 +14,7 @@ f_getRetsTS <- function(delCode, refDate, startDate, showCf) {
     Hline <- data.frame(panel = c("Relative", "Absolute"), Y = c(0,100))
   }
   
-  cFlows <- RETS %>%
+  cFlows <- RBCidxData %>%
     filter(DelCode %in% delCode[,1],
            Date >= startDate,
            Date <= refDate) %>%
@@ -24,7 +24,7 @@ f_getRetsTS <- function(delCode, refDate, startDate, showCf) {
            CashflowPerc = ifelse(is.na(Cashflow), 0, Cashflow/lag(AUM)*100),
            DelCode = as.character(DelCode)) 
 
-  chartSet <- RETS %>%
+  chartSet <- RBCidxData %>%
     filter(DelCode %in% delCode[,1],
            Date >= startDate,
            Date <= refDate) %>%

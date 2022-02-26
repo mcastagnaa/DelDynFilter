@@ -12,7 +12,7 @@ f_getRetsStats <- function(delCode, refDate, startDate) {
   per <- ifelse(daysPer > 31, "weekly", "daily")
   scaleVol <- ifelse(per == "weekly", 52, 252)
 
-  statsData <- RETS %>%
+  statsData <- RBCidxData %>%
     filter(DelCode %in% delCode[,1],
            Date >= startDate,
            Date <= refDate) %>%
@@ -54,7 +54,7 @@ f_getRetsStats <- function(delCode, refDate, startDate) {
               TE = sd(RR) * 100,
               TEAnn = TE * sqrt(scaleVol)) 
   
-  rets <- RETS %>%
+  rets <- RBCidxData %>%
     filter(DelCode %in% delCode[,1],
            Date >= startDate,
            Date <= refDate) %>%

@@ -4,6 +4,7 @@
 library(shiny)
 library(shinyjs)
 library(shinythemes)
+library(shinyauthr)
 library(dplyr)
 library(tidyr)
 library(lubridate)
@@ -18,6 +19,13 @@ library(shinyWidgets)
 
 rm(list = ls())
 options(dplyr.summarise.inform = FALSE)
+
+user_base <- tibble::tibble(
+  user = c("user"),
+  password = sapply(c("PBIIsNoGood"), sodium::password_store),
+  permissions = c("standard"),
+  name = c("User")
+)
 ### SETUP ######################################
 source("datamanagement.R")
 source("f_getTable.R")
@@ -42,6 +50,12 @@ dims <- data.frame(Name = c("Manager", "Asset Class", "Region", "Style", "Fund")
 ui <- fluidPage(theme=shinytheme("lumen"),
                 htmlwidgets::getDependency('sparkline'),
                 useShinyjs(),
+                
+                # logout button
+                div(class = "pull-right", shinyauthr::logoutUI(id = "logout")),
+                # login section
+                shinyauthr::loginUI(id = "login"),
+                
                 fluidRow(
                   column(2,
                          br(), br(),
@@ -49,6 +63,12 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                          br(), br(), style="text-align: center;"),
                   column(10,
                          titlePanel("Managed account returns dashboard"),
+                         radioButtons("MainRetSource",
+                                      "Main returns source (NOT IMPLEMENTED - RBC currently is):",
+                                      choices = c("RBC", "FUSION"),
+                                      selected = "RBC",
+                                      inline = T,
+                                      width = NULL),
                          #h5("MIFL manager -> internal sleeves"),
                          #h5("non-MIFL manager -> external delegates"),
                          #h6("Data as per Fusion (Portfolio) and Rimes (SAA) extracts", style ="color: red;"),
@@ -67,7 +87,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                     radioButtons("filter4",
                                  "Include accounts with issues?",
                                  choices = c("Yes", "No"),
-                                 selected = "No"),
+                                 selected = "Yes"),
                     hr(),
                     selectInput("filter1",
                                 "Managers: 1 or more",
@@ -98,7 +118,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                 selected = NULL),
                     width = 2), 
                   mainPanel = mainPanel(
-                    fluidRow(column(3, dateInput("refDate", "Reference date", value = max(RETS$Date), 
+                    fluidRow(column(2, dateInput("refDate", "Reference date", value = max(RBCidxData$Date), 
                               format = "d-M-yy", width = "100px",
                               weekstart = 1)),
                              column(3, selectInput("datesGroup",
@@ -108,7 +128,8 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                                    selected = c("1d", "1w", "MtD", "YtD", "QtD", "SI"))),
                              column(3, br(), br(), materialSwitch("annualizedOn", "Annualize (periods over 1 year)", 
                                                             value = T, status = "primary")),
-                             column(1, br(), downloadButton("mainTable", "Generate XL"))),
+                             column(2, br(), downloadButton("mainTable", "Generate XL")),
+                             column(2, br(), downloadButton("fullMainTable", "Generate full XL"))),
                     div(paste("Main Table: Click on the table to get the chart/CAPM statistics of that",
                               "delegate returns for the time frame specificed."), style ="color: red;"),
                     div(DTOutput("table"), style = "font-size:70%"),
@@ -191,7 +212,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                div(dataTableOutput("fullMap"), style = "font-size:70%"),
                                hr(),
                                div(dataTableOutput("exceptMap"), style = "font-size:80%")),
-                      tabPanel("Checks",
+                      tabPanel("Fusion Checks",
                                br(),
                                div(dataTableOutput("statTable"), style = "font-size:80%"),
                                br(),
@@ -207,7 +228,23 @@ ui <- fluidPage(theme=shinytheme("lumen"),
 
 server <- function(input, output, session) {
   
+  credentials <- shinyauthr::loginServer(
+    id = "login",
+    data = user_base,
+    user_col = user,
+    pwd_col = password,
+    sodium_hashed = TRUE#,
+    #log_out = reactive(logout_init())
+  )
+  
+  # Logout to hide
+  # logout_init <- shinyauthr::logoutServer(
+  #   id = "logout",
+  #   active = reactive(credentials()$user_auth)
+  # )
+  
   showModal(modalDialog(
+    
     title = "Data information",
     tags$ul(
       tags$li(paste("Returns available for", length(unique(RETS$DelCode)), "delegates")),
@@ -221,9 +258,9 @@ server <- function(input, output, session) {
                         is.na(MAP$EndDate) &
                         !(MAP$DelCode %in% RETS$DelCode)
                         , c("DelCode", "mgrName")], collapse = "\n"))),
-      tags$li("Delegates with issues (odd returns/mismatch vs. delegates info):",
+      tags$li("(FUSION) Delegates with issues (odd returns/mismatch vs. delegates info):",
               length(EXCP$DelCode)),
-      tags$li("Delegates with issues (significant deviation vs. RBC valuations):",
+      tags$li("(FUSION) Delegates with issues (significant deviation vs. RBC valuations):",
               length(tTests$DelCode[tTests$StatDate == max(tTests$StatDate) &
                                       abs(tTests$t)>=2]))
     )
@@ -285,7 +322,7 @@ server <- function(input, output, session) {
       stCust <- datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
       #trick for YtD
       if (is.na(stCust)) {
-        stCust <- max(RETS$Date[RETS$Date <= as.Date(format(input$refDate, "%Y-01-01"))-1])
+        stCust <- max(RBCidxData$Date[RBCidxData$Date <= as.Date(format(input$refDate, "%Y-01-01"))-1])
       }
       
       updateDateInput(session, "startCust", 
@@ -297,6 +334,7 @@ server <- function(input, output, session) {
   
   datesResult <- reactiveValues(datesFrame = 0)
   tableData <- reactiveValues(fullMap = 0) 
+  tableData <- reactiveValues(allMap = 0)
   #tTests <- reactiveValues(df = 0)
   framesSelected <- reactiveValues(selFrames = 0)
   RBCFUSdayCheck <- reactiveValues(df = 0)
@@ -318,18 +356,18 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$refDate, {
-    d1 <- max(RETS$Date[RETS$Date <= (input$refDate-1)])
-    w1 <- max(RETS$Date[RETS$Date <= (input$refDate-7)])
+    d1 <- max(RBCidxData$Date[RBCidxData$Date <= (input$refDate-1)])
+    w1 <- max(RBCidxData$Date[RBCidxData$Date <= (input$refDate-7)])
     # m1 <- max(RETS$Date[RETS$Date <= ceiling_date(input$refDate %m-% months(1), "month")-1])
     # m3 <- max(RETS$Date[RETS$Date <= ceiling_date(input$refDate %m-% months(3), "month")-1])
     # m6 <- max(RETS$Date[RETS$Date <= ceiling_date(input$refDate %m-% months(6), "month")-1])
-    m1 <- max(RETS$Date[RETS$Date <= input$refDate %m-% months(1)])
-    m3 <- max(RETS$Date[RETS$Date <= input$refDate %m-% months(3)])
-    m6 <- max(RETS$Date[RETS$Date <= input$refDate %m-% months(6)])
-    y1 <- max(RETS$Date[RETS$Date <= (input$refDate-months(12))])
-    QtD <- max(RETS$Date[RETS$Date <= (yq(quarter(input$refDate, with_year = TRUE)) - days(1))])
-    MtD <- max(RETS$Date[RETS$Date <= as.Date(format(input$refDate, "%Y-%m-01"))-1])
-    YtD <- max(RETS$Date[RETS$Date <= as.Date(format(input$refDate, "%Y-01-01"))-1])
+    m1 <- max(RBCidxData$Date[RBCidxData$Date <= input$refDate %m-% months(1)])
+    m3 <- max(RBCidxData$Date[RBCidxData$Date <= input$refDate %m-% months(3)])
+    m6 <- max(RBCidxData$Date[RBCidxData$Date <= input$refDate %m-% months(6)])
+    y1 <- max(RBCidxData$Date[RBCidxData$Date <= (input$refDate-months(12))])
+    QtD <- max(RBCidxData$Date[RBCidxData$Date <= (yq(quarter(input$refDate, with_year = TRUE)) - days(1))])
+    MtD <- max(RBCidxData$Date[RBCidxData$Date <= as.Date(format(input$refDate, "%Y-%m-01"))-1])
+    YtD <- max(RBCidxData$Date[RBCidxData$Date <= as.Date(format(input$refDate, "%Y-01-01"))-1])
     
     datesResult$datesFrame <- data.frame(Label = c("1d", "1w", "1m", "3m", "6m", "1y", "MtD", "YtD", "QtD"),
                                          Date = c(d1, w1, m1, m3, m6, y1, MtD, YtD, QtD),
@@ -358,6 +396,8 @@ server <- function(input, output, session) {
   
   output$table <- renderDataTable(
     {
+      req(credentials()$user_auth)
+      
     groups <- setdiff(c(dims$Code[dims$Name == input$Group1],
                         dims$Code[dims$Name == input$Group2],
                         dims$Code[dims$Name == input$Group3],
@@ -365,7 +405,9 @@ server <- function(input, output, session) {
                       "")
   
     tableData$fullMap <- f_getTable(groups, input$filter1, input$filter2, input$filter3, input$filter4, 
-               input$refDate, datesResult$datesFrame, input$chartFrame, input$datesGroup, input$annualizedOn) 
+                                    input$refDate, datesResult$datesFrame, input$chartFrame, input$datesGroup, input$annualizedOn)[[1]]
+    tableData$allMap <- f_getTable(groups, input$filter1, input$filter2, input$filter3, input$filter4, 
+                                    input$refDate, datesResult$datesFrame, input$chartFrame, input$datesGroup, input$annualizedOn)[[2]]
     
     datatable(tableData$fullMap,
     container = htmltools::withTags(table(
@@ -652,6 +694,10 @@ server <- function(input, output, session) {
   output$mainTable <- downloadHandler(filename = "mainTable.xlsx", 
                                   content = function(file) {
                                     openxlsx::write.xlsx(tableData$fullMap, file)})
+  
+  output$fullMainTable <- downloadHandler(filename = "fullMainTable.xlsx", 
+                                      content = function(file) {
+                                        openxlsx::write.xlsx(tableData$allMap, file)})
   
   output$idxData <- downloadHandler(filename = "idxData.xlsx", 
                                     content = function(file) {

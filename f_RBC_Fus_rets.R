@@ -22,10 +22,10 @@ f_RBC_Fus_rets <- function(delCode, refDate, startDate, showCf) {
            Date >= startDate,
            Date <= refDate) %>%
     arrange(Date) %>%
-    left_join(RBCidxData[, c("DelCode", "RBCAdj", "Date")], by = c("DelCode", "Date")) %>%
+    left_join(RBCidxData[, c("DelCode", "AUM", "Date")], by = c("DelCode", "Date")) %>%
     group_by(DelCode) %>%
     mutate(panel = "Subs-Reds (% over prev. AUM)",
-           CashflowPerc = ifelse(is.na(Amount), 0, Amount/lag(RBCAdj)*100),
+           CashflowPerc = ifelse(is.na(Amount), 0, Amount/lag(AUM)*100),
            DelCode = as.character(DelCode)) 
   
   chartSet <- rbind(
@@ -44,7 +44,7 @@ f_RBC_Fus_rets <- function(delCode, refDate, startDate, showCf) {
              Date <= refDate) %>%
       arrange(Date) %>%
       group_by(DelCode) %>%
-      mutate(Index = NAV/first(NAV)*100,
+      mutate(Index = PortIndex/first(PortIndex)*100,
              Source = "RBC") %>%
       select(Date, DelCode, Index, Source)
   ) %>%
