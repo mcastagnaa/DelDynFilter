@@ -1,4 +1,4 @@
-writeLines("Loading f_RBC_Fus_rets.R ...")
+#writeLines("Loading f_RBC_Fus_rets.R ...")
  
 # delCode = as.data.frame(c('694826'))
 # refDate <- as.Date("2022-02-17")

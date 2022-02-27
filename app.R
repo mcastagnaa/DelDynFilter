@@ -20,12 +20,6 @@ library(shinyWidgets)
 rm(list = ls())
 options(dplyr.summarise.inform = FALSE)
 
-user_base <- tibble::tibble(
-  user = c("user"),
-  password = sapply(c("PBIIsNoGood"), sodium::password_store),
-  permissions = c("standard"),
-  name = c("User")
-)
 ### SETUP ######################################
 source("datamanagement.R")
 source("f_getTable.R")
@@ -64,7 +58,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                   column(10,
                          titlePanel("Managed account returns dashboard"),
                          radioButtons("MainRetSource",
-                                      "Main returns source (NOT IMPLEMENTED - RBC currently is):",
+                                      "Main returns source (NOT IMPLEMENTED - RBC currently is main returns source):",
                                       choices = c("RBC", "FUSION"),
                                       selected = "RBC",
                                       inline = T,
@@ -171,7 +165,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                h4("Comparison Fusion-based RBC-based daily returns"),
                                plotOutput("retsTSFusRBC"),
                                hr(),
-                               h4("Comparison with Fusion-based and delegates-based monthly returns"),
+                               h4("Comparison with selected returns and delegates-submitted monthly returns"),
                                plotOutput("delDataComp")),
                       tabPanel("AUM",
                                br(),
@@ -182,6 +176,11 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                                br(),
                                                h5("AUM (EUR mn) for reference date above"),
                                                div(tableOutput("AUMlast"), style = "font-size:80%")))),
+                      tabPanel("Turnover",
+                               br(),
+                               fluidRow(column(12, 
+                                               br(),
+                                               h4("Soon!")))),
                       tabPanel("Fund analysis",
                                fluidRow(column(3, selectInput("fundName", "Select Fund:", 
                                                               choices = MAP %>%
@@ -633,7 +632,7 @@ server <- function(input, output, session) {
     cb <- htmlwidgets::JS('function(){debugger;HTMLWidgets.staticRender();}')
     
     sprKL <- tTests %>%
-      filter(StatDate <= input$refDate) %>%
+      #filter(StatDate <= input$refDate) %>%
       arrange(StatDate) %>%
       mutate(StatDate = as.numeric(StatDate),
              t = abs(t)) %>%
@@ -644,7 +643,8 @@ server <- function(input, output, session) {
     
     datatable(tTests %>%
                 mutate(StatDate = as.Date(StatDate)) %>%
-                filter(StatDate == input$refDate) %>%
+                #filter(StatDate == input$refDate) %>%
+                filter(StatDate == max(StatDate, na.rm = T)) %>%
                 mutate(t = abs(t)) %>%
                 mutate_at(c("p", "mean", "max", "min"), ~ . * 100) %>%
                 mutate_if(is.numeric, ~ round(.,2)) %>%
@@ -662,7 +662,8 @@ server <- function(input, output, session) {
   output$RBC_Fus <- renderPlot({
     req(length(input$statTable_rows_selected) > 0)
     
-    theseTests <- filter(tTests,  StatDate == input$refDate)
+    #theseTests <- filter(tTests,  StatDate == input$refDate)
+    theseTests <- filter(tTests,  StatDate == max(StatDate, na.rm = T))
     
     RBCFUSDelCode$df <- Del_recon %>%
         filter(DelCode == as.character(theseTests$DelCode[input$statTable_rows_selected])) %>%

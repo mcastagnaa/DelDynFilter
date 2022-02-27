@@ -20,6 +20,16 @@ if(readline(prompt = "Connect to Sharepoint (Yes/anything)? ") == "Yes") {
   }
 }
 
+pwd <- read.csv("pwd.csv") 
+
+user_base <- tibble::tibble(
+  user = pwd$user,
+  password = sapply(pwd$password, sodium::password_store),
+  permissions = pwd$permission,
+  name = pwd$name
+)
+
+
 load("DelSet.Rda")
 
 RETS <- RETS %>%

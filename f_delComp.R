@@ -4,7 +4,7 @@ f_delComp <- function(delCode) {
   
   Hline <- data.frame(panel = c("Diff", "Abs"), Y = c(0,100))
   
-  chart <- RETS %>%
+  chart <- RBCidxData %>%
     filter(DelCode %in% delCode[,1]) %>%
     select(DelCode, Date, MIO = PortIndex) %>%
     #mutate(DelCode = as.character(DelCode)) %>%
