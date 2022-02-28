@@ -64,3 +64,8 @@ RBCidxData <- RBCidxData %>%
   select(-weekday) %>%
   left_join(RETS[, c("DelCode", "Date", "Fund_Name", "DelegateManager", "SAAIndex", "DBCode")], by = c("DelCode","Date")) %>%
   rename(AUM = RBCAdj, PortIndex = NAV, Cashflow = NewCfl)
+
+TURN <- TURN %>%
+  select(DelCode, AM = mgrName, AssetClass, Region, Style, buy = buyTrades, sell= sellTrades, 
+         Cashflows = totCfl, Turnover = UCITStnv) %>%
+  arrange(desc(Turnover))

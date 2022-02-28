@@ -180,7 +180,15 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                br(),
                                fluidRow(column(12, 
                                                br(),
-                                               h4("Soon!")))),
+                                               h4("Turnover (UCITS definition) over last 12 months, previous EoM"),
+                                               div(dataTableOutput("turnover"), style = "font-size:80%"),
+                                               br(),
+                                               withMathJax(),
+                                               helpText("\\(\\frac{(buy - sell) - (subscriptions - redemptions)}{NAV}\\)"),
+                                               div("Only funded instruments considered ex-cash"),
+                                               div("RBC data for both holdings and cashflows"),
+                                               div("In decimals: 0.01 = 1%"),
+                                               br()))),
                       tabPanel("Fund analysis",
                                fluidRow(column(3, selectInput("fundName", "Select Fund:", 
                                                               choices = MAP %>%
@@ -683,6 +691,10 @@ server <- function(input, output, session) {
                                        selection = "single",
                                        rownames = FALSE,
                                        filter= "bottom")
+  output$turnover <- renderDataTable(TURN,
+                                     server = T,
+                                     rownames = FALSE,
+                                     filter = "bottom")
   
   output$XLday <- downloadHandler(filename = "dayRBCFusion.xlsx", 
                                   content = function(file) {
