@@ -187,7 +187,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                                helpText("\\(\\frac{(buy - sell) - (subscriptions - redemptions)}{NAV}\\)"),
                                                div("Only funded instruments considered ex-cash"),
                                                div("RBC data for both holdings and cashflows"),
-                                               div("In decimals: 0.01 = 1%"),
+                                               div("In percentage: 1.0 = 1.0%"),
                                                br()))),
                       tabPanel("Fund analysis",
                                fluidRow(column(3, selectInput("fundName", "Select Fund:", 
@@ -352,7 +352,8 @@ server <- function(input, output, session) {
   
   observeEvent(input$refDate, {
     RBCFUSdayCheck$df <- Del_recon %>%
-      filter(Date == max(tTests$Date[tTests$StatDate == as.Date(input$refDate)])) %>%
+      #filter(Date == max(tTests$Date[tTests$StatDate == as.Date(input$refDate)])) %>%
+      filter(Date == max(tTests$Date[tTests$StatDate == max(tTests$StatDate)])) %>%
       #mutate(DelCode = as.numeric(DelCode)) %>%
       left_join(MAP, by = "DelCode") %>%
       mutate(DelCode = as.character(DelCode)) %>%
@@ -671,7 +672,9 @@ server <- function(input, output, session) {
     req(length(input$statTable_rows_selected) > 0)
     
     #theseTests <- filter(tTests,  StatDate == input$refDate)
-    theseTests <- filter(tTests,  StatDate == max(StatDate, na.rm = T))
+    theseTests <- tTests %>%
+      filter(StatDate == max(StatDate, na.rm = T)) %>%
+      arrange(desc(abs(t)))
     
     RBCFUSDelCode$df <- Del_recon %>%
         filter(DelCode == as.character(theseTests$DelCode[input$statTable_rows_selected])) %>%
@@ -691,7 +694,10 @@ server <- function(input, output, session) {
                                        selection = "single",
                                        rownames = FALSE,
                                        filter= "bottom")
-  output$turnover <- renderDataTable(TURN,
+  
+  output$turnover <- renderDataTable(TURN %>%
+                                       mutate_at(c("buy", "sell", "Cashflows", "Turnover"), ~ . * 100) %>%
+                                       mutate_if(is.numeric, ~ round(.,2)),
                                      server = T,
                                      rownames = FALSE,
                                      filter = "bottom")
