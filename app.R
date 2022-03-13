@@ -58,7 +58,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                   column(10,
                          titlePanel("Managed account returns dashboard"),
                          radioButtons("MainRetSource",
-                                      "Main returns source (NOT IMPLEMENTED - RBC currently is main returns source):",
+                                      "Main returns source:",
                                       choices = c("RBC", "FUSION"),
                                       selected = "RBC",
                                       inline = T,
@@ -112,7 +112,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                 selected = NULL),
                     width = 2), 
                   mainPanel = mainPanel(
-                    fluidRow(column(2, dateInput("refDate", "Reference date", value = max(RBCidxData$Date), 
+                    fluidRow(column(2, dateInput("refDate", "Reference date", value = max(mainSet$Date), 
                               format = "d-M-yy", width = "100px",
                               weekstart = 1)),
                              column(3, selectInput("datesGroup",
@@ -260,7 +260,7 @@ server <- function(input, output, session) {
       tags$li(paste("Last RBC returns:", format(max(RBCidxData$Date), "%d-%h-%y"))),
       tags$li(paste("Last RBC cashflow (trade date):", format(max(RBCflows$TradeDate), "%d-%h-%y"))),
       tags$li(paste("Last RBC cashflow (value date):", format(max(RBCflows$ValueDate), "%d-%h-%y"))),
-      tags$li("Live accounts without returns:",
+      tags$li("Live accounts without Fusion returns:",
               div(paste(MAP[!is.na(MAP$SophisID) &
                         is.na(MAP$EndDate) &
                         !(MAP$DelCode %in% RETS$DelCode)
@@ -289,6 +289,7 @@ server <- function(input, output, session) {
       disable("Group3")
       disable("Group4")
     }})
+  
   observeEvent(input$Group2, {
     if(nchar(input$Group2) > 0){
       enable("Group3")
@@ -303,6 +304,7 @@ server <- function(input, output, session) {
       disable("Group3")
       disable("Group4")
     }})
+  
   observeEvent(input$Group3, {
     if(nchar(input$Group3) > 0){
       enable("Group4")
@@ -329,7 +331,7 @@ server <- function(input, output, session) {
       stCust <- datesResult$datesFrame["Date"][datesResult$datesFrame["Label"] == input$chartFrame]
       #trick for YtD
       if (is.na(stCust)) {
-        stCust <- max(RBCidxData$Date[RBCidxData$Date <= as.Date(format(input$refDate, "%Y-01-01"))-1])
+        stCust <- max(mainSet$Date[mainSet$Date <= as.Date(format(input$refDate, "%Y-01-01"))-1])
       }
       
       updateDateInput(session, "startCust", 
@@ -339,17 +341,34 @@ server <- function(input, output, session) {
     }
   })
   
+  observeEvent(input$MainRetSource, {
+    if(input$MainRetSource == "FUSION"){
+      mainSet <- RETS
+      compSet <- RBCidxData
+      updateDateInput(session, inputId = "refDate", value = max(mainSet$Date))
+      updateSelectInput(session, inputId = "chartFrame", selected = "YtD")
+      updateSelectInput(session, inputId = "datesGroup", selected = c("1d", "1w", "MtD", "YtD", "QtD", "SI"))
+    } else {
+      mainSet <- RBCidxData
+      compSet <- RETS
+      updateDateInput(session, inputId = "refDate", value = max(mainSet$Date))
+      updateSelectInput(session, inputId = "chartFrame", selected = "YtD")
+      updateSelectInput(session, inputId = "datesGroup", selected = c("1d", "1w", "MtD", "YtD", "QtD", "SI"))
+    }
+  })
+  
   datesResult <- reactiveValues(datesFrame = 0)
-  tableData <- reactiveValues(fullMap = 0) 
-  tableData <- reactiveValues(allMap = 0)
+  tableData <- reactiveValues(fullMap = 0, allMap = 0) 
+  #tableData <- reactiveValues()
   #tTests <- reactiveValues(df = 0)
   framesSelected <- reactiveValues(selFrames = 0)
-  RBCFUSdayCheck <- reactiveValues(df = 0)
+  RBCFUSdayCheck <- reactiveValues(df = 0) ### no need
   RBCFUSDelCode <- reactiveValues(df = 0)
   idxRets <- reactiveValues(df = 0)
-  
+
   observeEvent(input$datesGroup, {framesSelected$selFrames <- input$datesGroup})
   
+  #TAKE IT OUT: not reacting to date as it's always the last.
   observeEvent(input$refDate, {
     RBCFUSdayCheck$df <- Del_recon %>%
       #filter(Date == max(tTests$Date[tTests$StatDate == as.Date(input$refDate)])) %>%
@@ -364,18 +383,18 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$refDate, {
-    d1 <- max(RBCidxData$Date[RBCidxData$Date <= (input$refDate-1)])
-    w1 <- max(RBCidxData$Date[RBCidxData$Date <= (input$refDate-7)])
+    d1 <- max(mainSet$Date[mainSet$Date <= (input$refDate-1)])
+    w1 <- max(mainSet$Date[mainSet$Date <= (input$refDate-7)])
     # m1 <- max(RETS$Date[RETS$Date <= ceiling_date(input$refDate %m-% months(1), "month")-1])
     # m3 <- max(RETS$Date[RETS$Date <= ceiling_date(input$refDate %m-% months(3), "month")-1])
     # m6 <- max(RETS$Date[RETS$Date <= ceiling_date(input$refDate %m-% months(6), "month")-1])
-    m1 <- max(RBCidxData$Date[RBCidxData$Date <= input$refDate %m-% months(1)])
-    m3 <- max(RBCidxData$Date[RBCidxData$Date <= input$refDate %m-% months(3)])
-    m6 <- max(RBCidxData$Date[RBCidxData$Date <= input$refDate %m-% months(6)])
-    y1 <- max(RBCidxData$Date[RBCidxData$Date <= (input$refDate-months(12))])
-    QtD <- max(RBCidxData$Date[RBCidxData$Date <= (yq(quarter(input$refDate, with_year = TRUE)) - days(1))])
-    MtD <- max(RBCidxData$Date[RBCidxData$Date <= as.Date(format(input$refDate, "%Y-%m-01"))-1])
-    YtD <- max(RBCidxData$Date[RBCidxData$Date <= as.Date(format(input$refDate, "%Y-01-01"))-1])
+    m1 <- max(mainSet$Date[mainSet$Date <= input$refDate %m-% months(1)])
+    m3 <- max(mainSet$Date[mainSet$Date <= input$refDate %m-% months(3)])
+    m6 <- max(mainSet$Date[mainSet$Date <= input$refDate %m-% months(6)])
+    y1 <- max(mainSet$Date[mainSet$Date <= (input$refDate-months(12))])
+    QtD <- max(mainSet$Date[mainSet$Date <= (yq(quarter(input$refDate, with_year = TRUE)) - days(1))])
+    MtD <- max(mainSet$Date[mainSet$Date <= as.Date(format(input$refDate, "%Y-%m-01"))-1])
+    YtD <- max(mainSet$Date[mainSet$Date <= as.Date(format(input$refDate, "%Y-01-01"))-1])
     
     datesResult$datesFrame <- data.frame(Label = c("1d", "1w", "1m", "3m", "6m", "1y", "MtD", "YtD", "QtD"),
                                          Date = c(d1, w1, m1, m3, m6, y1, MtD, YtD, QtD),
@@ -402,9 +421,8 @@ server <- function(input, output, session) {
     filter= "bottom",
     class = "compact")
   
-  output$table <- renderDataTable(
-    {
-      req(credentials()$user_auth)
+  output$table <- renderDataTable({
+    req(credentials()$user_auth)
       
     groups <- setdiff(c(dims$Code[dims$Name == input$Group1],
                         dims$Code[dims$Name == input$Group2],
@@ -413,9 +431,12 @@ server <- function(input, output, session) {
                       "")
   
     tableData$fullMap <- f_getTable(groups, input$filter1, input$filter2, input$filter3, input$filter4, 
-                                    input$refDate, datesResult$datesFrame, input$chartFrame, input$datesGroup, input$annualizedOn)[[1]]
+                                    input$refDate, datesResult$datesFrame, input$chartFrame, 
+                                    input$datesGroup, input$annualizedOn, input$MainRetSource)[[1]]
+      
     tableData$allMap <- f_getTable(groups, input$filter1, input$filter2, input$filter3, input$filter4, 
-                                    input$refDate, datesResult$datesFrame, input$chartFrame, input$datesGroup, input$annualizedOn)[[2]]
+                                    input$refDate, datesResult$datesFrame, input$chartFrame, 
+                                   input$datesGroup, input$annualizedOn, input$MainRetSource)[[2]]
     
     datatable(tableData$fullMap,
     container = htmltools::withTags(table(
@@ -496,12 +517,14 @@ server <- function(input, output, session) {
     idxRets$df <- f_getRetsTS(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected, "DelCode"]),
                               refDate = format(as.Date(input$refDate), "%Y-%m-%d"), 
                               startDate = format(as.Date(startDate), "%Y-%m-%d"),
-                              showCf = input$cfOn)[2]
+                              showCf = input$cfOn,
+                              input$MainRetSource)[2]
     
     return(f_getRetsTS(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected, "DelCode"]),
                        refDate = format(as.Date(input$refDate), "%Y-%m-%d"), 
                        startDate = format(as.Date(startDate), "%Y-%m-%d"),
-                       showCf = input$cfOn)[1])
+                       showCf = input$cfOn,
+                       input$MainRetSource)[1])
     
   })
   
@@ -516,7 +539,8 @@ server <- function(input, output, session) {
                  input$refDate, datesResult$datesFrame, 
                  input$chartFrame, 
                  input$startCust,
-                 as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))
+                 as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
+                 input$MainRetSource)
     
   })
   
@@ -531,7 +555,8 @@ server <- function(input, output, session) {
 
     f_getRetsStats(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
                    refDate = format(input$refDate, "%Y-%m-%d"), 
-                   startDate = format(as.Date(startDate), "%Y-%m-%d"))
+                   startDate = format(as.Date(startDate), "%Y-%m-%d"),
+                   input$MainRetSource)
   })
   
   output$discPeriod <- renderPlot({
@@ -545,7 +570,8 @@ server <- function(input, output, session) {
     
     f_getDiscPeriod(delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
                     refDate = format(input$refDate, "%Y-%m-%d"), 
-                    startDate = format(as.Date(startDate), "%Y-%m-%d"))
+                    startDate = format(as.Date(startDate), "%Y-%m-%d"),
+                    input$MainRetSource)
     })
   
   output$AUMmgr <- renderPlot({
@@ -558,7 +584,8 @@ server <- function(input, output, session) {
     f_getAUM(input$filter1, 
              delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
              refDate = format(input$refDate, "%Y-%m-%d"), 
-             startDate = format(as.Date(startDate), "%Y-%m-%d"))[1]
+             startDate = format(as.Date(startDate), "%Y-%m-%d"),
+             input$MainRetSource)[1]
   })
   
   output$AUMstrat <- renderPlot({
@@ -573,7 +600,8 @@ server <- function(input, output, session) {
     f_getAUM(input$filter1, 
              delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
              refDate = format(input$refDate, "%Y-%m-%d"), 
-             startDate = format(as.Date(startDate), "%Y-%m-%d"))[2]
+             startDate = format(as.Date(startDate), "%Y-%m-%d"),
+             input$MainRetSource)[2]
   })
   
   output$AUMstratDet <- renderPlot({
@@ -588,7 +616,8 @@ server <- function(input, output, session) {
     f_getAUM(input$filter1, 
              delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
              refDate = format(input$refDate, "%Y-%m-%d"), 
-             startDate = format(as.Date(startDate), "%Y-%m-%d"))[3]
+             startDate = format(as.Date(startDate), "%Y-%m-%d"),
+             input$MainRetSource)[3]
   })
   
   output$AUMlast <- renderTable({
@@ -601,23 +630,24 @@ server <- function(input, output, session) {
     f_getAUM(input$filter1, 
              delCode = as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]),
              refDate = format(input$refDate, "%Y-%m-%d"), 
-             startDate = format(as.Date(startDate), "%Y-%m-%d"))[4]
+             startDate = format(as.Date(startDate), "%Y-%m-%d"),
+             input$MainRetSource)[4]
   })
   
-  output$FundWgtHst <- renderPlot(f_getFundA(input$fundName)[1])
-  output$absCorr <- renderPlot(f_getFundA(input$fundName)[2])
-  output$relCorr <- renderPlot(f_getFundA(input$fundName)[3])
-  output$volStats <- renderTable(f_getFundA(input$fundName)[4])
-  output$compCasesNo <- renderText(paste("Complete cases for correlation calcs:", f_getFundA(input$fundName)[5]))
+  output$FundWgtHst <- renderPlot(f_getFundA(input$fundName, input$MainRetSource)[1])
+  output$absCorr <- renderPlot(f_getFundA(input$fundName, input$MainRetSource)[2])
+  output$relCorr <- renderPlot(f_getFundA(input$fundName, input$MainRetSource)[3])
+  output$volStats <- renderTable(f_getFundA(input$fundName, input$MainRetSource)[4])
+  output$compCasesNo <- renderText(paste("Complete cases for correlation calcs:", f_getFundA(input$fundName, input$MainRetSource)[5]))
   
   output$selAbsCorr <- renderPlot({
     req(length(input$table_rows_selected) > 1)
-    f_getSelCorr(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))[1]
+    f_getSelCorr(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]), input$MainRetSource)[1]
   })
   
   output$selRelCorr <- renderPlot({
     req(length(input$table_rows_selected) > 1)
-    f_getSelCorr(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))[2]
+    f_getSelCorr(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]), input$MainRetSource)[2]
   })
   
   output$ranksTable <- renderTable({
@@ -633,7 +663,7 @@ server <- function(input, output, session) {
   output$delDataComp <- renderPlot({
     req(length(input$table_rows_selected) > 0)
     req(unique(MAP$mgrName[MAP$DelCode %in% as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"])[,1]]) != "MIFL")
-    f_delComp(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]))
+    f_delComp(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"], input$MainRetSource))
   })
   
   output$statTable <- renderDataTable({

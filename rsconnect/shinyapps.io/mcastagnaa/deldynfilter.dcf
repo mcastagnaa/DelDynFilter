@@ -5,7 +5,7 @@ account: mcastagnaa
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 3693490
-bundleId: 5662914
+bundleId: 5678213
 url: https://mcastagnaa.shinyapps.io/deldynfilter/
-when: 1646850888.78966
-lastSyncTime: 1646850888.78968
+when: 1647196952.22801
+lastSyncTime: 1647196952.22803

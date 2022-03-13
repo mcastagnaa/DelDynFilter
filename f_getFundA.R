@@ -1,10 +1,12 @@
 fundName = "CH PROVIDENT 1"
 
-f_getFundA <- function(fundName) {
+f_getFundA <- function(fundName, source) {
 
   width_scale = 8
   
-  FundWgtH <- RETS %>%
+  if(source == "RBC") mainSet <- RBCidxData else mainSet <- RETS
+  
+  FundWgtH <- mainSet %>%
     filter(Fund_Name == fundName) %>%
     left_join(MAP[, c("DelCode", "mgrName")], by = "DelCode") %>%
     group_by(Date) %>%
@@ -22,7 +24,7 @@ f_getFundA <- function(fundName) {
     labs(title = paste("Weights across delegates for", fundName),
          y = "", x= "")
     
-  FundRetsData <- RETS %>%
+  FundRetsData <- mainSet %>%
     filter(Fund_Name == fundName) %>%
     left_join(MAP[, c("DelCode", "mgrName")], by = "DelCode") %>%
     rename(Manager= mgrName) %>%
@@ -52,7 +54,7 @@ f_getFundA <- function(fundName) {
               TE = sd(RR) * 100,
               TEAnn = TE * sqrt(52))
   
-  liveMgr <- RETS %>%
+  liveMgr <- mainSet %>%
     filter(Date == max(Date),
            Fund_Name == fundName) %>%
     select(DelCode)

@@ -3,10 +3,12 @@
 # startDate <- as.Date("2021-10-29")
 # showCf = T
 
-f_getRetsTS <- function(delCode, refDate, startDate, showCf) {
+f_getRetsTS <- function(delCode, refDate, startDate, showCf, source) {
   
   startDate <- as.Date(startDate)
   refDate <- as.Date(refDate)
+  
+  if(source == "RBC") mainSet <- RBCidxData else mainSet <- RETS
   
   if(showCf) {
     Hline <- data.frame(panel = c("Relative", "Absolute", "Subs-Reds (% over prev. AUM)"), Y = c(0,100,0))
@@ -14,7 +16,7 @@ f_getRetsTS <- function(delCode, refDate, startDate, showCf) {
     Hline <- data.frame(panel = c("Relative", "Absolute"), Y = c(0,100))
   }
   
-  cFlows <- RBCidxData %>%
+  cFlows <- mainSet %>%
     filter(DelCode %in% delCode[,1],
            Date >= startDate,
            Date <= refDate) %>%
@@ -24,7 +26,7 @@ f_getRetsTS <- function(delCode, refDate, startDate, showCf) {
            CashflowPerc = ifelse(is.na(Cashflow), 0, Cashflow/lag(AUM)*100),
            DelCode = as.character(DelCode)) 
 
-  chartSet <- RBCidxData %>%
+  chartSet <- mainSet %>%
     filter(DelCode %in% delCode[,1],
            Date >= startDate,
            Date <= refDate) %>%

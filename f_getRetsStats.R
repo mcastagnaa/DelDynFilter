@@ -2,17 +2,19 @@
 # refDate <- as.Date("2021-11-04")
 # startDate <- as.Date("2021-10-29")
 
-f_getRetsStats <- function(delCode, refDate, startDate) {
+f_getRetsStats <- function(delCode, refDate, startDate, source) {
   
   startDate <- as.Date(startDate)
   refDate <- as.Date(refDate)
+  
+  if(source == "RBC") mainSet <- RBCidxData else mainSet <- RETS
   
   daysPer <- as.numeric(refDate-startDate)
   
   per <- ifelse(daysPer > 31, "weekly", "daily")
   scaleVol <- ifelse(per == "weekly", 52, 252)
 
-  statsData <- RBCidxData %>%
+  statsData <- mainSet %>%
     filter(DelCode %in% delCode[,1],
            Date >= startDate,
            Date <= refDate) %>%
@@ -54,7 +56,7 @@ f_getRetsStats <- function(delCode, refDate, startDate) {
               TE = sd(RR) * 100,
               TEAnn = TE * sqrt(scaleVol)) 
   
-  rets <- RBCidxData %>%
+  rets <- mainSet %>%
     filter(DelCode %in% delCode[,1],
            Date >= startDate,
            Date <= refDate) %>%

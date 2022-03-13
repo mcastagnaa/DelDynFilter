@@ -69,3 +69,6 @@ TURN <- TURN %>%
   select(DelCode, AM = mgrName, AssetClass, Region, Style, buy = buyTrades, sell= sellTrades, 
          Cashflows = totCfl, Turnover = UCITStnv) %>%
   arrange(desc(Turnover))
+
+mainSet <- RBCidxData
+compSet <- RETS

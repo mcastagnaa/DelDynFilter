@@ -1,32 +1,32 @@
-groups <- c("AssetClass")
-input1 <- c("MIFL")
-input2 <- "Main"
-input3 <- "Live"
-input4 <- "Yes"
-refDate <- as.Date("2022-02-23")
-isAnnual <- T
+# groups <- c("AssetClass")
+# input1 <- c("MIFL")
+# input2 <- "Main"
+# input3 <- "Live"
+# input4 <- "Yes"
+# refDate <- as.Date("2022-02-23")
+# isAnnual <- T
 
 ### datesFrame
-d1 <- max(RETS$Date[RETS$Date <= (refDate-1)])
-w1 <- max(RETS$Date[RETS$Date <= (refDate-7)])
-m1 <- max(RETS$Date[RETS$Date <= refDate %m-% months(1)])
-m3 <- max(RETS$Date[RETS$Date <= refDate %m-% months(3)])
-m6 <- max(RETS$Date[RETS$Date <= refDate %m-% months(6)])
-y1 <- max(RETS$Date[RETS$Date <= (refDate-months(12))])
-QtD <- max(RETS$Date[RETS$Date <= (yq(quarter(refDate, with_year = TRUE)) - days(1))])
-MtD <- max(RETS$Date[RETS$Date <= as.Date(format(refDate, "%Y-%m-01"))-1])
-YtD <- max(RETS$Date[RETS$Date <= as.Date(format(refDate, "%Y-01-01"))-1])
-
-datesFrame <- data.frame(Label = c("1d", "1w", "1m", "3m", "6m", "1y", "MtD", "YtD", "QtD"),
-                                     Date = c(d1, w1, m1, m3, m6, y1, MtD, YtD, QtD),
-                                     stringsAsFactors = F)
-rm(d1, w1, m1, m3, m6, y1, QtD, MtD, YtD)
-chartFrame <- "YtD"
-datesGroup <- c("1d", "1w", "MtD", "YtD", "QtD", "SI")
+# d1 <- max(RETS$Date[RETS$Date <= (refDate-1)])
+# w1 <- max(RETS$Date[RETS$Date <= (refDate-7)])
+# m1 <- max(RETS$Date[RETS$Date <= refDate %m-% months(1)])
+# m3 <- max(RETS$Date[RETS$Date <= refDate %m-% months(3)])
+# m6 <- max(RETS$Date[RETS$Date <= refDate %m-% months(6)])
+# y1 <- max(RETS$Date[RETS$Date <= (refDate-months(12))])
+# QtD <- max(RETS$Date[RETS$Date <= (yq(quarter(refDate, with_year = TRUE)) - days(1))])
+# MtD <- max(RETS$Date[RETS$Date <= as.Date(format(refDate, "%Y-%m-01"))-1])
+# YtD <- max(RETS$Date[RETS$Date <= as.Date(format(refDate, "%Y-01-01"))-1])
+# 
+# datesFrame <- data.frame(Label = c("1d", "1w", "1m", "3m", "6m", "1y", "MtD", "YtD", "QtD"),
+#                                      Date = c(d1, w1, m1, m3, m6, y1, MtD, YtD, QtD),
+#                                      stringsAsFactors = F)
+# rm(d1, w1, m1, m3, m6, y1, QtD, MtD, YtD)
+# chartFrame <- "YtD"
+# datesGroup <- c("1d", "1w", "MtD", "YtD", "QtD", "SI")
 
 ##### 
 f_getTable <- function(groups, input1, input2, input3, input4, 
-                       refDate, datesFrame, chartFrame, datesGroup, isAnnual) {
+                       refDate, datesFrame, chartFrame, datesGroup, isAnnual, source) {
   
   thisMAP <- MAP %>%
     #{if (input1 == "Internal") filter(., mgrName == "MIFL") else .} %>%
@@ -42,7 +42,9 @@ f_getTable <- function(groups, input1, input2, input3, input4,
   datesFrame <- datesFrame %>%
     filter(Label %in% datesGroup)
   
-  thisRetsSet <- RBCidxData %>%
+  if(source == "RBC") mainSet <- RBCidxData else mainSet <- RETS
+  
+  thisRetsSet <- mainSet %>%
     #filter(DelCode %in% thisMAP$DelCode) %>%
     left_join(datesFrame, by = "Date") %>%
     arrange(Date) %>%

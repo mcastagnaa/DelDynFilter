@@ -1,10 +1,12 @@
 #delCode = as.data.frame(c('689939','684491'))
 
-f_delComp <- function(delCode) {
+f_delComp <- function(delCode, source) {
   
   Hline <- data.frame(panel = c("Diff", "Abs"), Y = c(0,100))
   
-  chart <- RBCidxData %>%
+  if(source == "RBC") mainSet <- RBCidxData else mainSet <- RETS
+  
+  chart <- mainSet %>%
     filter(DelCode %in% delCode[,1]) %>%
     select(DelCode, Date, MIO = PortIndex) %>%
     #mutate(DelCode = as.character(DelCode)) %>%

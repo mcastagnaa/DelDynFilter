@@ -4,17 +4,18 @@
 # refDate <- as.Date("2021-07-13")
 # startDate <- as.Date("2020-12-31")
 
-f_getAUM <- function(mgrs, delCode, refDate, startDate) {
+f_getAUM <- function(mgrs, delCode, refDate, startDate, source) {
   
   startDate <- as.Date(startDate)
   refDate <- as.Date(refDate)
   
+  if(source == "RBC") mainSet <- RBCidxData else mainSet <- RETS
+  
   if(length(delCode) != 0) {
-    
-    stratSet <- MAP %>%
+      stratSet <- MAP %>%
       filter(DelDispName %in% MAP$DelDispName[MAP$DelCode %in% delCode[,1]])
     
-    AUMstrat <- RETS %>%
+    AUMstrat <- mainSet %>%
       left_join(stratSet, by = "DelCode") %>%
       filter(!is.na(DelDispName)) %>%
       group_by(Date, Strategy = DelDispName) %>%
@@ -29,7 +30,7 @@ f_getAUM <- function(mgrs, delCode, refDate, startDate) {
     
     width_scale = 6
     
-    AUMStrDet <- RETS %>%
+    AUMStrDet <- mainSet %>%
       left_join(MAP, by = "DelCode") %>%
       filter(DelDispName == stratSet$DelDispName[1]) %>%
       group_by(Date, Fund = Fund_Name) %>%
@@ -47,7 +48,7 @@ f_getAUM <- function(mgrs, delCode, refDate, startDate) {
       labs(title = paste("AUM (€mn) for", stratSet$DelDispName[1]),
            y = "EUR mn", x= "")
     
-    AUMlast <- RETS %>%
+    AUMlast <- mainSet %>%
       left_join(stratSet, by = "DelCode") %>%
       filter(!is.na(DelDispName), Date == refDate) %>%
       group_by(Group = DelDispName) %>%
@@ -56,7 +57,7 @@ f_getAUM <- function(mgrs, delCode, refDate, startDate) {
     
     AUMlast <- AUMlast %>%
       bind_rows(
-        RETS %>%
+        mainSet %>%
           left_join(MAP, by = "DelCode") %>%
           filter(DelDispName %in% stratSet$DelDispName, Date == refDate) %>%
           group_by(Level = DelDispName, Group = Fund_Name) %>%
@@ -69,7 +70,7 @@ f_getAUM <- function(mgrs, delCode, refDate, startDate) {
     AUMlast = NULL
   }
   
-  AUMmgr <- RETS %>%
+  AUMmgr <- mainSet %>%
     filter(DelegateManager %in% mgrs) %>%
     group_by(Date, AM = DelegateManager) %>%
     summarise(MgrTotAUM = sum(AUM, na.rm = T)/1000000) %>%
@@ -81,7 +82,7 @@ f_getAUM <- function(mgrs, delCode, refDate, startDate) {
     labs(title = "AUM (€mn) by manager",
          y = "EUR mn", x= "")
   
-  AUMlast <- RETS %>%
+  AUMlast <- mainSet %>%
     filter(DelegateManager %in% mgrs, Date == refDate) %>%
     group_by(Group = DelegateManager) %>%
     summarise(TotAUM = sum(AUM, na.rm = T)/1000000) %>%

@@ -19,15 +19,17 @@
 
 
 f_getScatter <- function(dels, refDate, datesFrame, 
-                         chartFrame, custStart, delCode) {
+                         chartFrame, custStart, delCode, source) {
   
   startDate <- if(length(datesFrame$Date[datesFrame$Label %in% chartFrame]) == 0) {
     custStart
   } else datesFrame$Date[datesFrame$Label %in% chartFrame]
   
   thisDates <- c(startDate, refDate)
-
-  thisRetsSet <- RBCidxData %>%
+  
+  if(source == "RBC") mainSet <- RBCidxData else mainSet <- RETS
+  
+  thisRetsSet <- mainSet %>%
     filter(DelCode %in% dels$DelCode) %>%
     group_by(DelCode) %>%
     {if (chartFrame != c("SI")) filter(., Date %in% thisDates) else filter(., Date %in% c(refDate, min(Date)))} %>%

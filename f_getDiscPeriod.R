@@ -2,12 +2,14 @@
 # refDate <- as.Date("2021-07-13")
 # startDate <- as.Date("2020-12-31")
 
-f_getDiscPeriod <- function(delCode, refDate, startDate) {
+f_getDiscPeriod <- function(delCode, refDate, startDate, source) {
   
   startDate <- as.Date(startDate)
   refDate <- as.Date(refDate)
   
-  chart <- RETS %>%
+  if(source == "RBC") mainSet <- RBCidxData else mainSet <- RETS
+  
+  chart <- mainSet %>%
     filter(DelCode %in% delCode[,1],
            Date >= startDate,
            Date <= refDate) %>%

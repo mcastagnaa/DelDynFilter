@@ -1,8 +1,10 @@
 # delCode <- data.frame(delcode = c("694832", "701878"))
 
-f_getSelCorr <- function(delCode) {
+f_getSelCorr <- function(delCode, source) {
 
-  selRetsData <- RBCidxData %>%
+  if(source == "RBC") mainSet <- RBCidxData else mainSet <- RETS
+  
+  selRetsData <- mainSet %>%
     filter(DelCode %in% delCode[, 1]) %>%
     left_join(MAP[, c("DelCode", "mgrName")], by = "DelCode") %>%
     group_by(Date) %>%
