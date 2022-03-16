@@ -1,4 +1,5 @@
-fundName = "CH PROVIDENT 1"
+fundName = "MGF GLOBALE MULTI BOND"
+source = "FUSION"
 
 f_getFundA <- function(fundName, source) {
 
@@ -14,6 +15,7 @@ f_getFundA <- function(fundName, source) {
            TotAUM = sum(AUM, na.rm = T),
            Wgt = AUM/TotAUM) %>%
     rename(Manager= mgrName) %>%
+    mutate(Manager = paste(Manager, DelCode, sep = "|")) %>%
     ggplot() +
     geom_area(aes(x = Date, y = Wgt, fill = Manager)) +
     scale_y_continuous(labels = scales::percent) +
@@ -55,8 +57,8 @@ f_getFundA <- function(fundName, source) {
               TEAnn = TE * sqrt(52))
   
   liveMgr <- mainSet %>%
-    filter(Date == max(Date),
-           Fund_Name == fundName) %>%
+    filter(Fund_Name == fundName) %>%
+    filter(Date == max(Date)) %>%
     select(DelCode)
   
   FundData <- FundRetsData %>%
