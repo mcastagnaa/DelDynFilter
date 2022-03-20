@@ -70,5 +70,10 @@ TURN <- TURN %>%
          Cashflows = totCfl, Turnover = UCITStnv) %>%
   arrange(desc(Turnover))
 
+# FUNDSAA <- FUNDSAA %>%
+#   rename(Date = VALUATION_DATE,
+#          RimesBMK = INDEX_SYMBOL,
+#          SAAF = INDEX_LEVEL_BASE_CCY)
+
 mainSet <- RBCidxData
 compSet <- RETS

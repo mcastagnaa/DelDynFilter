@@ -34,6 +34,7 @@ source("f_getRanks.R")
 source("f_delComp.R")
 source("f_RBC_Fus.R")
 source("f_RBC_Fus_rets.R")
+source("f_macroAtt.R")
 
 dims <- data.frame(Name = c("Manager", "Asset Class", "Region", "Style", "Fund"),
                    Codes = c("mgrName", "AssetClass", "Region", "Style", "FundName"),
@@ -210,6 +211,26 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                                plotOutput("absCorr")),
                                         column(6, h5("Correlation of daily relative returns"), 
                                                plotOutput("relCorr")))),
+                      tabPanel("Macro attribution",
+                               fluidRow(column(6, 
+                                               selectInput("maFName", "Select Fund:",
+                                                           choices = FUNDSFULL %>%
+                                                             filter(FundStructure != "FoF") %>%
+                                                             select(FundName) %>%
+                                                             arrange(FundName),
+                                                           multiple = F,
+                                                           selected = "CH PROVIDENT 1")),
+                                        column(3, 
+                                               dateInput("maStartDate", "Start Date:",
+                                                         value = as.Date("2021-12-31"), 
+                                                         format = "d-M-yy", width = "100px", weekstart = 1))),
+                               fluidRow(column(12,
+                                               h5("SAA Definitions for the different objects"),
+                                               div(dataTableOutput("SAAdefs"), style = "font-size:80%"),
+                                               br(),
+                                               h5("Macro Attribution"),
+                                               div(dataTableOutput("MacroAtt"), style = "font-size:80%"),
+                                               br()))),
                       tabPanel("Rankings",
                                br(),
                                h4("Only available for internal delegates where relevant"),
@@ -731,6 +752,15 @@ server <- function(input, output, session) {
                                      server = T,
                                      rownames = FALSE,
                                      filter = "bottom")
+  
+  output$SAAdefs <- renderDataTable(f_macroAtt(input$maStartDate, 
+                                               input$refDate, 
+                                               FUNDSFULL$ShortCode[FUNDSFULL$FundName == input$maFName])[[1]])
+  
+  output$MacroAtt <- renderDataTable(datatable(f_macroAtt(input$maStartDate, 
+                                               input$refDate, 
+                                               FUNDSFULL$ShortCode[FUNDSFULL$FundName == input$maFName])[[2]]) %>%
+                                       formatPercentage(columns = 2:10, digits = 3))
   
   output$XLday <- downloadHandler(filename = "dayRBCFusion.xlsx", 
                                   content = function(file) {
