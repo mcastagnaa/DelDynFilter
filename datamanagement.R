@@ -77,3 +77,14 @@ TURN <- TURN %>%
 
 mainSet <- RBCidxData
 compSet <- RETS
+
+RBCFUSdayCheckDf <- Del_recon %>%
+  #filter(Date == max(tTests$Date[tTests$StatDate == as.Date(input$refDate)])) %>%
+  filter(Date == max(tTests$Date[tTests$StatDate == max(tTests$StatDate)])) %>%
+  #mutate(DelCode = as.numeric(DelCode)) %>%
+  left_join(MAP, by = "DelCode") %>%
+  mutate(DelCode = as.character(DelCode)) %>%
+  select(Date, DelCode, FundName, DelDispName, Fusion = Fus_AUM, RBC = RBC_AUM, 
+         Adjustment = NewCfl, Diff = AUMdiff, DiffPerc = AUMdiffPerc) %>%
+  arrange(desc(abs(DiffPerc))) %>%
+  as.data.frame()

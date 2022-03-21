@@ -383,25 +383,26 @@ server <- function(input, output, session) {
   #tableData <- reactiveValues()
   #tTests <- reactiveValues(df = 0)
   framesSelected <- reactiveValues(selFrames = 0)
-  RBCFUSdayCheck <- reactiveValues(df = 0) ### no need
+  #RBCFUSdayCheck <- reactiveValues(df = 0) ### no need
   RBCFUSDelCode <- reactiveValues(df = 0)
   idxRets <- reactiveValues(df = 0)
 
   observeEvent(input$datesGroup, {framesSelected$selFrames <- input$datesGroup})
   
-  #TAKE IT OUT: not reacting to date as it's always the last.
-  observeEvent(input$refDate, {
-    RBCFUSdayCheck$df <- Del_recon %>%
-      #filter(Date == max(tTests$Date[tTests$StatDate == as.Date(input$refDate)])) %>%
-      filter(Date == max(tTests$Date[tTests$StatDate == max(tTests$StatDate)])) %>%
-      #mutate(DelCode = as.numeric(DelCode)) %>%
-      left_join(MAP, by = "DelCode") %>%
-      mutate(DelCode = as.character(DelCode)) %>%
-      select(Date, DelCode, FundName, DelDispName, Fusion = Fus_AUM, RBC = RBC_AUM, 
-             Adjustment = NewCfl, Diff = AUMdiff, DiffPerc = AUMdiffPerc) %>%
-      arrange(desc(abs(DiffPerc))) %>%
-      as.data.frame()
-  })
+  #TAKE IT OUT: not reacting to date as it's always the last. Replaced in datamanagement
+  # with RBCFUSdayCheckDf
+  # observeEvent(input$refDate, {
+  #   RBCFUSdayCheck$df <- Del_recon %>%
+  #     #filter(Date == max(tTests$Date[tTests$StatDate == as.Date(input$refDate)])) %>%
+  #     filter(Date == max(tTests$Date[tTests$StatDate == max(tTests$StatDate)])) %>%
+  #     #mutate(DelCode = as.numeric(DelCode)) %>%
+  #     left_join(MAP, by = "DelCode") %>%
+  #     mutate(DelCode = as.character(DelCode)) %>%
+  #     select(Date, DelCode, FundName, DelDispName, Fusion = Fus_AUM, RBC = RBC_AUM, 
+  #            Adjustment = NewCfl, Diff = AUMdiff, DiffPerc = AUMdiffPerc) %>%
+  #     arrange(desc(abs(DiffPerc))) %>%
+  #     as.data.frame()
+  # })
   
   observeEvent(input$refDate, {
     d1 <- max(mainSet$Date[mainSet$Date <= (input$refDate-1)])
@@ -734,7 +735,7 @@ server <- function(input, output, session) {
     return(f_RBC_Fus(as.character(theseTests$DelCode[input$statTable_rows_selected])))
   })
   
-  output$lastRBCFus <- renderDataTable(RBCFUSdayCheck$df %>%
+  output$lastRBCFus <- renderDataTable(RBCFUSdayCheckDf %>%
                                          mutate(Date = format(Date, "%d-%h-%y"),
                                                 Fusion = round(Fusion/1000000,3),
                                                 RBC = round(RBC/1000000,3),
@@ -764,7 +765,7 @@ server <- function(input, output, session) {
   
   output$XLday <- downloadHandler(filename = "dayRBCFusion.xlsx", 
                                   content = function(file) {
-                                    openxlsx::write.xlsx(RBCFUSdayCheck$df, file)})
+                                    openxlsx::write.xlsx(RBCFUSdayCheckDf, file)})
   
   output$XLDelCount <- downloadHandler(filename = "Code_Date.xlsx", 
                                        content = function(file) {
