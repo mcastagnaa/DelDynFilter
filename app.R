@@ -230,6 +230,8 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                                br(),
                                                h5("Macro Attribution"),
                                                div(dataTableOutput("MacroAtt"), style = "font-size:80%"),
+                                               br(),
+                                               div(plotOutput("mAttCheckChart")),
                                                br()))),
                       tabPanel("Rankings",
                                br(),
@@ -389,8 +391,9 @@ server <- function(input, output, session) {
 
   observeEvent(input$datesGroup, {framesSelected$selFrames <- input$datesGroup})
   
-  #TAKE IT OUT: not reacting to date as it's always the last. Replaced in datamanagement
-  # with RBCFUSdayCheckDf
+  ### TAKE IT OUT: not reacting to date as it's always the last. 
+  ### Replaced in datamanagement with RBCFUSdayCheckDf
+  
   # observeEvent(input$refDate, {
   #   RBCFUSdayCheck$df <- Del_recon %>%
   #     #filter(Date == max(tTests$Date[tTests$StatDate == as.Date(input$refDate)])) %>%
@@ -756,12 +759,19 @@ server <- function(input, output, session) {
   
   output$SAAdefs <- renderDataTable(f_macroAtt(input$maStartDate, 
                                                input$refDate, 
-                                               FUNDSFULL$ShortCode[FUNDSFULL$FundName == input$maFName])[[1]])
+                                               FUNDSFULL$ShortCode[FUNDSFULL$FundName == input$maFName],
+                                               input$MainRetSource)[[1]])
   
   output$MacroAtt <- renderDataTable(datatable(f_macroAtt(input$maStartDate, 
                                                input$refDate, 
-                                               FUNDSFULL$ShortCode[FUNDSFULL$FundName == input$maFName])[[2]]) %>%
+                                               FUNDSFULL$ShortCode[FUNDSFULL$FundName == input$maFName], 
+                                               input$MainRetSource)[[2]]) %>%
                                        formatPercentage(columns = 2:10, digits = 3))
+  
+  output$mAttCheckChart <- renderPlot(f_macroAtt(input$maStartDate, 
+                                                 input$refDate, 
+                                                 FUNDSFULL$ShortCode[FUNDSFULL$FundName == input$maFName], 
+                                                 input$MainRetSource)[[3]])
   
   output$XLday <- downloadHandler(filename = "dayRBCFusion.xlsx", 
                                   content = function(file) {

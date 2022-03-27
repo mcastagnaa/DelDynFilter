@@ -1,9 +1,11 @@
-# startDate <- as.Date("2021-12-31")
-# endDate <- as.Date("2022-02-28")
-# 
-# thisCode <- "3015"
+startDate <- as.Date("2021-12-31")
+endDate <- as.Date("2022-03-21")
 
-f_macroAtt <- function(startDate, endDate, thisCode) {
+thisCode <- "8824"
+
+source = "FUSION"
+
+f_macroAtt <- function(startDate, endDate, thisCode, source) {
   
   if(source == "RBC") mainSet <- RBCidxData else mainSet <- RETS
   
@@ -109,6 +111,85 @@ f_macroAtt <- function(startDate, endDate, thisCode) {
                          totDelER, 
                          DIFF))
   
-  return <- list(thisSAADefs, view)
+  retChart <- retSet %>%
+    group_by(Date) %>%
+    summarise(fRetDel = sum(DelW * DelRet),
+              fSAADel = sum(DelW * DelBmkRet),
+              fRetPU = first(FundRet),
+              fSAAPU = first(FundBmkRet)) %>%
+    mutate(cumFRetDel = cumprod(1+fRetDel)-1,
+           cumFRetPU = cumprod(1+fRetPU)-1,
+           cumFSAAPU = cumprod(1+fSAAPU)-1,
+           cumFSAADel = cumprod(1+fSAADel)-1,
+           cumDiffF = cumFRetPU-cumFRetDel,
+           cumDiffSAA = cumFSAAPU-cumFSAADel) %>%
+    select(Date, cumFRetDel, cumFRetPU, cumFSAAPU, cumFSAADel, cumDiffF, cumDiffSAA) %>%
+    pivot_longer(-Date, names_to = "Version") %>%
+    mutate(panel= ifelse(grepl("SAA", Version), "SAA", "Fund"),
+           item = ifelse(grepl("Diff", Version), "Delta", "Absolute"),
+           Version = ifelse(grepl("PU", Version), "Official", "Delegates Wavg")) %>%
+    ggplot(aes(x = Date, y = value, color = Version)) +
+    geom_line() + 
+    facet_grid(item~panel, scales= "free_y") +
+    scale_y_continuous(labels = scales::percent) +
+    theme_bw() +
+    labs(title = "Par Universo vs. delegate weighted average",
+         subtitle = "SAA as Wavg of delegates SAA",
+         x = "", y = "Cumulative returns",
+         caption = paste0("Source: ",source))
   
+  ### TESTING !!! #################
+  # retSet %>%
+  #   group_by(Date) %>%
+  #   summarise(Level = "TOP",
+  #             totAvgW = sum(DelW),
+  #             ptfl = first(cumFund),
+  #             SAA = first(cumFundSaa),
+  #             ptflER = ptfl-SAA,
+  #             ptflSAAER = NA,
+  #             ERDel = sum(cumDelERContr),
+  #             ERSAADel = sum(cumDelERSaaContr),
+  #             totDelER = ERDel+ERSAADel,
+  #             DIFF = ptflER-totDelER) %>%
+  #   select(Date, ptflER, DIFF) %>%
+  #   pivot_longer(-Date) %>%
+  #   ggplot(aes(x = Date, y = value, color = name)) +
+  #   geom_line() +
+  #   scale_y_continuous(labels = scales::percent)
+  # 
+  # 
+  # retSet %>%
+  #   group_by(DelCode, Date) %>%
+  #   left_join(thisDelMap, by = c("DelCode" = "Code")) %>%
+  #   mutate(ptflER = cumDel-cumDelSaa,
+  #          ptflSAAER = cumDelSaa-cumFundSaa,
+  #          totDelER = cumDelERContr+cumDelERSaaContr,
+  #          DIFF = ptflER-totDelER) %>%
+  #   ungroup() %>%
+  #   select(Date,
+  #          Level = Strategy,
+  #          totAvgW = DelW,
+  #          ptfl = cumDel,
+  #          SAA = cumDelSaa,
+  #          ptflER,
+  #          ptflSAAER,
+  #          ERDel = cumDelERContr,
+  #          ERSAADel = cumDelERSaaContr,
+  #          totDelER,
+  #          DIFF) %>%
+  #   select(Level, DIFF, Date) %>%
+  #   ggplot(aes(x = Date, y = DIFF, color = Level)) +
+  #   geom_line() +
+  #   scale_y_continuous(labels = scales::percent)
+  # 
+  # TEST <- retSet %>%
+  #   filter(Date %in% c(as.Date("2022-02-23"), as.Date("2022-02-24")),
+  #          DelCode %in% c("707793", "705234"))
+
+  ### END TESTING !!! #################
+  
+  return <- list(thisSAADefs, view, retChart)
+  
+  
+   
 }
