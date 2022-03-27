@@ -88,8 +88,7 @@ f_macroAtt <- function(startDate, endDate, thisCode, source) {
                             ERDel = sum(cumDelERContr),
                             ERSAADel = sum(cumDelERSaaContr),
                             totDelER = ERDel+ERSAADel,
-                            DIFF = ptflER-totDelER) %>%
-                  as.data.frame(),
+                            DIFF = ptflER-totDelER),
                 retSet %>%
                   group_by(DelCode) %>%
                   mutate(avgW = sum(DelW)/nperiod) %>%
@@ -136,6 +135,34 @@ f_macroAtt <- function(startDate, endDate, thisCode, source) {
     labs(title = "Par Universo vs. delegate weighted average",
          subtitle = "SAA as Wavg of delegates SAA",
          x = "", y = "Cumulative returns",
+         caption = paste0("Source: ",source))
+  
+  ERset <- retSet %>%
+    group_by(Date) %>%
+    summarise(ER = first(cumFund)-first(cumFundSaa)) %>%
+    select(Date, ER)
+  
+  contrChart <- retSet %>%
+    group_by(Date) %>%
+    summarise(totAvgW = sum(DelW),
+              ptfl = first(cumFund),
+              SAA = first(cumFundSaa),
+              ptflER = ptfl-SAA,
+              ER.Del = sum(cumDelERContr),
+              ER.SAADel = sum(cumDelERSaaContr),
+              totDelER = ER.Del+ER.SAADel,
+              RESIDUAL = ptflER-totDelER) %>%
+    select(Date, ER.Del, ER.SAADel, RESIDUAL, ER = ptflER) %>%
+    pivot_longer(-c(Date, ER), names_to = "Contributors") %>%
+    mutate(Contributors = factor(Contributors, levels = c("RESIDUAL", "ER.Del", "ER.SAADel"))) %>%
+    ggplot() +
+    geom_bar(aes(x = Date, y = value, fill = Contributors), stat = "identity", position = "stack") +
+    geom_line(data = ERset, aes(x=Date, y = ER)) +
+    scale_y_continuous(labels = scales::percent) +
+    theme_bw() +
+    labs(title = "Contribution to fund excess return vs. SAA",
+         #subtitle = "",
+         x = "", y = "Cumulative relative returns",
          caption = paste0("Source: ",source))
   
   ### TESTING !!! #################
@@ -188,7 +215,7 @@ f_macroAtt <- function(startDate, endDate, thisCode, source) {
 
   ### END TESTING !!! #################
   
-  return <- list(thisSAADefs, view, retChart)
+  return <- list(thisSAADefs, view, retChart, contrChart)
   
   
    

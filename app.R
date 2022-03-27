@@ -232,7 +232,8 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                                div(dataTableOutput("MacroAtt"), style = "font-size:80%"),
                                                br(),
                                                div(plotOutput("mAttCheckChart")),
-                                               br()))),
+                                               br(),
+                                               div(plotOutput("mContrChart"))))),
                       tabPanel("Rankings",
                                br(),
                                h4("Only available for internal delegates where relevant"),
@@ -772,6 +773,11 @@ server <- function(input, output, session) {
                                                  input$refDate, 
                                                  FUNDSFULL$ShortCode[FUNDSFULL$FundName == input$maFName], 
                                                  input$MainRetSource)[[3]])
+  
+  output$mContrChart <- renderPlot(f_macroAtt(input$maStartDate, 
+                                                 input$refDate, 
+                                                 FUNDSFULL$ShortCode[FUNDSFULL$FundName == input$maFName], 
+                                                 input$MainRetSource)[[4]])
   
   output$XLday <- downloadHandler(filename = "dayRBCFusion.xlsx", 
                                   content = function(file) {
