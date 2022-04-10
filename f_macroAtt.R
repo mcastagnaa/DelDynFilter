@@ -1,9 +1,9 @@
-startDate <- as.Date("2021-12-31")
-endDate <- as.Date("2022-03-21")
-
-thisCode <- "8824"
-
-source = "FUSION"
+# startDate <- as.Date("2021-12-31")
+# endDate <- as.Date("2022-03-21")
+# 
+# thisCode <- "8824"
+# 
+# source = "FUSION"
 
 f_macroAtt <- function(startDate, endDate, thisCode, source) {
   
@@ -63,66 +63,78 @@ f_macroAtt <- function(startDate, endDate, thisCode, source) {
            FundBmkRet = FSAA/lag(FSAA)-1) %>%
     na.omit() %>%
     select (-c(AUM, FAUM)) %>%
+    mutate(DelWRet = DelRet * DelW,
+           BmkWRet = DelBmkRet * DelW,
+           SAAWRet = FundBmkRet* DelW,
+           count = 1) %>%
+    group_by(DelCode) %>%
     mutate(cumFund = cumprod(1+FundRet)-1,
            cumFundSaa = cumprod(1+FundBmkRet)-1,
            cumDel = cumprod(1+DelRet)-1,
            cumDelSaa = cumprod(1+DelBmkRet)-1,
-           cumDelContr = cumprod(1+DelW*DelRet)-1,
-           cumDelSaaContr = cumprod(1+DelW*DelBmkRet)-1,
-           cumDelERContr = cumDelContr-cumDelSaaContr,
-           cumDelERSaaContr = cumDelSaaContr-(cumprod(1+DelW*FundBmkRet)-1)) 
+           cumDelWRet = cumprod(1+DelWRet)-1,
+           cumBmkWRet = cumprod(1+BmkWRet)-1,
+           cumSAAWRet = cumprod(1+SAAWRet)-1,
+           avgW = cumsum(DelW)/cumsum(count)) %>%
+    select(-count) %>%
+    ungroup() %>%
+    mutate(DelER = DelRet-DelBmkRet,
+           FundER = FundRet-FundBmkRet,
+           cumDelER = cumDel-cumDelSaa,
+           cumFundER = cumFund-cumFundSaa,
+           DelContrib = DelWRet - BmkWRet,
+           SAAContrib = BmkWRet - SAAWRet,
+           cumDelContrib = cumDelWRet - cumBmkWRet,
+           cumSAAContrib = cumBmkWRet - cumSAAWRet) 
 
-  nperiod <- length(unique(retSet$Date))
+  topLevel <- retSet %>%
+    arrange(Date) %>%
+    group_by(Date) %>%
+    summarise(totAvgW = sum(DelW),
+              ptfl = first(cumFund),
+              SAA = first(cumFundSaa),
+              ER = first(cumFundER),
+              DelRetWER = sum(DelWRet),
+              BmkRetWER = sum(BmkWRet),
+              SAARetWER = sum(SAAWRet)) %>%
+    mutate(ERSaa = NA,
+           cumDelWRet = cumprod(1+DelRetWER)-1,
+           cumBmkWRet = cumprod(1+BmkRetWER)-1,
+           cumSAAWRet = cumprod(1+SAARetWER)-1,
+           cumDelContrib = cumDelWRet-cumBmkWRet,
+           cumSAAContrib = cumBmkWRet-cumSAAWRet,
+           Residual = ER-(cumDelContrib+cumSAAContrib),
+           Level= "TOP") 
   
   view <- rbind(retSet %>%
-                  group_by(DelCode) %>%
-                  mutate(avgW = sum(DelW)/nperiod) %>%
                   filter(Date == max(Date)) %>%
-                  ungroup() %>%
-                  summarise(Level = "TOP",
-                            totAvgW = sum(avgW),
-                            ptfl = first(cumFund),
-                            SAA = first(cumFundSaa),
-                            ptflER = ptfl-SAA,
-                            ptflSAAER = NA,
-                            ERDel = sum(cumDelERContr),
-                            ERSAADel = sum(cumDelERSaaContr),
-                            totDelER = ERDel+ERSAADel,
-                            DIFF = ptflER-totDelER),
-                retSet %>%
-                  group_by(DelCode) %>%
-                  mutate(avgW = sum(DelW)/nperiod) %>%
-                  filter(Date == max(Date)) %>%
-                  ungroup() %>%
-                  left_join(thisDelMap, by = c("DelCode" = "Code")) %>%
-                  mutate(ptflER = cumDel-cumDelSaa,
-                         ptflSAAER = cumDelSaa-cumFundSaa,
-                         totDelER = cumDelERContr+cumDelERSaaContr,
-                         DIFF = NA) %>%
-                  select(Level = Strategy,
+                  mutate(ER = cumDel-cumDelSaa,
+                         ERSaa = cumDelSaa-cumFundSaa,
+                         Residual = (cumDelWRet-cumSAAWRet)-(cumDelContrib+cumSAAContrib)) %>%
+                  select(Level = DelCode,
                          totAvgW = avgW,
                          ptfl = cumDel,
                          SAA = cumDelSaa,
-                         ptflER, 
-                         ptflSAAER,
-                         ERDel = cumDelERContr,
-                         ERSAADel = cumDelERSaaContr,
-                         totDelER, 
-                         DIFF))
+                         ER, 
+                         ERSaa,
+                         cumDelWRet,
+                         cumBmkWRet,
+                         cumSAAWRet,
+                         cumDelContrib,
+                         cumSAAContrib,
+                         Residual),
+                topLevel %>%
+                  filter(Date == max(Date)) %>%
+                  select(-c(Date, BmkRetWER, SAARetWER, DelRetWER))) %>%
+    arrange(desc(Level))
   
-  retChart <- retSet %>%
-    group_by(Date) %>%
-    summarise(fRetDel = sum(DelW * DelRet),
-              fSAADel = sum(DelW * DelBmkRet),
-              fRetPU = first(FundRet),
-              fSAAPU = first(FundBmkRet)) %>%
-    mutate(cumFRetDel = cumprod(1+fRetDel)-1,
-           cumFRetPU = cumprod(1+fRetPU)-1,
-           cumFSAAPU = cumprod(1+fSAAPU)-1,
-           cumFSAADel = cumprod(1+fSAADel)-1,
-           cumDiffF = cumFRetPU-cumFRetDel,
-           cumDiffSAA = cumFSAAPU-cumFSAADel) %>%
-    select(Date, cumFRetDel, cumFRetPU, cumFSAAPU, cumFSAADel, cumDiffF, cumDiffSAA) %>%
+  view <- rename_all(view, ~gsub("cum", "", names(view)))
+  
+  ### CHARTS ##########################################################
+  TESTS <- topLevel %>%
+    select(Date, FundPU = ptfl, SAAPU = SAA, cumDelWRet, cumSAAWRet = cumBmkWRet) %>%
+    mutate(cumDiffF = FundPU-cumDelWRet,
+           cumDiffSAA = SAAPU-cumSAAWRet) %>%
     pivot_longer(-Date, names_to = "Version") %>%
     mutate(panel= ifelse(grepl("SAA", Version), "SAA", "Fund"),
            item = ifelse(grepl("Diff", Version), "Delta", "Absolute"),
@@ -137,86 +149,39 @@ f_macroAtt <- function(startDate, endDate, thisCode, source) {
          x = "", y = "Cumulative returns",
          caption = paste0("Source: ",source))
   
-  ERset <- retSet %>%
-    group_by(Date) %>%
-    summarise(ER = first(cumFund)-first(cumFundSaa)) %>%
-    select(Date, ER)
-  
-  contrChart <- retSet %>%
-    group_by(Date) %>%
-    summarise(totAvgW = sum(DelW),
-              ptfl = first(cumFund),
-              SAA = first(cumFundSaa),
-              ptflER = ptfl-SAA,
-              ER.Del = sum(cumDelERContr),
-              ER.SAADel = sum(cumDelERSaaContr),
-              totDelER = ER.Del+ER.SAADel,
-              RESIDUAL = ptflER-totDelER) %>%
-    select(Date, ER.Del, ER.SAADel, RESIDUAL, ER = ptflER) %>%
+  Cumulative <- topLevel %>%
+    select(Date, ER, ER.Del = cumDelContrib, ER.SAADel = cumSAAContrib, Residual) %>%
     pivot_longer(-c(Date, ER), names_to = "Contributors") %>%
-    mutate(Contributors = factor(Contributors, levels = c("RESIDUAL", "ER.Del", "ER.SAADel"))) %>%
+    mutate(Contributors = factor(Contributors, levels = c("Residual", "ER.Del", "ER.SAADel"))) %>%
     ggplot() +
+    geom_hline(yintercept = 0, color = "black") +
     geom_bar(aes(x = Date, y = value, fill = Contributors), stat = "identity", position = "stack") +
-    geom_line(data = ERset, aes(x=Date, y = ER)) +
+    geom_line(aes(x=Date, y = ER)) +
     scale_y_continuous(labels = scales::percent) +
     theme_bw() +
-    labs(title = "Contribution to fund excess return vs. SAA",
+    labs(title = "Cumulative contribution to fund excess return vs. SAA",
          #subtitle = "",
          x = "", y = "Cumulative relative returns",
-         caption = paste0("Source: ",source))
+         caption = paste0("Source: ",source))  
   
-  ### TESTING !!! #################
-  # retSet %>%
-  #   group_by(Date) %>%
-  #   summarise(Level = "TOP",
-  #             totAvgW = sum(DelW),
-  #             ptfl = first(cumFund),
-  #             SAA = first(cumFundSaa),
-  #             ptflER = ptfl-SAA,
-  #             ptflSAAER = NA,
-  #             ERDel = sum(cumDelERContr),
-  #             ERSAADel = sum(cumDelERSaaContr),
-  #             totDelER = ERDel+ERSAADel,
-  #             DIFF = ptflER-totDelER) %>%
-  #   select(Date, ptflER, DIFF) %>%
-  #   pivot_longer(-Date) %>%
-  #   ggplot(aes(x = Date, y = value, color = name)) +
-  #   geom_line() +
-  #   scale_y_continuous(labels = scales::percent)
-  # 
-  # 
-  # retSet %>%
-  #   group_by(DelCode, Date) %>%
-  #   left_join(thisDelMap, by = c("DelCode" = "Code")) %>%
-  #   mutate(ptflER = cumDel-cumDelSaa,
-  #          ptflSAAER = cumDelSaa-cumFundSaa,
-  #          totDelER = cumDelERContr+cumDelERSaaContr,
-  #          DIFF = ptflER-totDelER) %>%
-  #   ungroup() %>%
-  #   select(Date,
-  #          Level = Strategy,
-  #          totAvgW = DelW,
-  #          ptfl = cumDel,
-  #          SAA = cumDelSaa,
-  #          ptflER,
-  #          ptflSAAER,
-  #          ERDel = cumDelERContr,
-  #          ERSAADel = cumDelERSaaContr,
-  #          totDelER,
-  #          DIFF) %>%
-  #   select(Level, DIFF, Date) %>%
-  #   ggplot(aes(x = Date, y = DIFF, color = Level)) +
-  #   geom_line() +
-  #   scale_y_continuous(labels = scales::percent)
-  # 
-  # TEST <- retSet %>%
-  #   filter(Date %in% c(as.Date("2022-02-23"), as.Date("2022-02-24")),
-  #          DelCode %in% c("707793", "705234"))
-
-  ### END TESTING !!! #################
+  Period <- retSet %>%
+    select(Date, DelCode, DelContrib, SAAContrib, ER = FundER) %>%
+    pivot_longer(-c(Date, DelCode, ER), names_to = "Contributors") %>%
+    ggplot() +
+    geom_hline(yintercept = 0, color = "black") +
+    geom_bar(aes(x = Date, y = value, fill= DelCode, color = Contributors),
+             stat= "identity", position = "stack") +
+    # geom_bar_pattern(aes(x = Date, y = value, pattern_fill = DelCode, pattern_density = Contributors), 
+    #                  stat = "identity", position = "stack", fill = 'light grey', pattern = "stripe", color = "grey") +
+    #scale_pattern_density_discrete(range = c(0.3,1)) +
+    scale_color_manual(values = c("black", "white")) + 
+    geom_point(aes(x=Date, y = ER), size = 2) +
+    scale_y_continuous(labels = scales::percent) +
+    theme_bw() +
+    labs(title = "Period contribution to fund excess return vs. SAA",
+         #subtitle = "",
+         x = "", y = "Period relative returns",
+         caption = paste0("Source: ", source))  
   
-  return <- list(thisSAADefs, view, retChart, contrChart)
-  
-  
-   
+  return <- list(thisSAADefs, view, TESTS, Cumulative, Period)
 }

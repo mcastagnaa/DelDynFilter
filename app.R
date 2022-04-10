@@ -16,6 +16,7 @@ library(janitor)
 library(ggcorrplot)
 library(Microsoft365R)
 library(shinyWidgets)
+#library(ggpattern)
 
 rm(list = ls())
 options(dplyr.summarise.inform = FALSE)
@@ -233,7 +234,9 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                                                br(),
                                                div(plotOutput("mAttCheckChart")),
                                                br(),
-                                               div(plotOutput("mContrChart"))))),
+                                               div(plotOutput("mContrChart")),
+                                               br(),
+                                               div(plotOutput("mPeriodChart"))))),
                       tabPanel("Rankings",
                                br(),
                                h4("Only available for internal delegates where relevant"),
@@ -767,7 +770,7 @@ server <- function(input, output, session) {
                                                input$refDate, 
                                                FUNDSFULL$ShortCode[FUNDSFULL$FundName == input$maFName], 
                                                input$MainRetSource)[[2]]) %>%
-                                       formatPercentage(columns = 2:10, digits = 3))
+                                       formatPercentage(columns = 2:12, digits = 3))
   
   output$mAttCheckChart <- renderPlot(f_macroAtt(input$maStartDate, 
                                                  input$refDate, 
@@ -778,6 +781,11 @@ server <- function(input, output, session) {
                                                  input$refDate, 
                                                  FUNDSFULL$ShortCode[FUNDSFULL$FundName == input$maFName], 
                                                  input$MainRetSource)[[4]])
+  
+  output$mPeriodChart <- renderPlot(f_macroAtt(input$maStartDate, 
+                                              input$refDate, 
+                                              FUNDSFULL$ShortCode[FUNDSFULL$FundName == input$maFName], 
+                                              input$MainRetSource)[[5]])
   
   output$XLday <- downloadHandler(filename = "dayRBCFusion.xlsx", 
                                   content = function(file) {

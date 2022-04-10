@@ -8,3 +8,7 @@ DelSet.Rda
 rsconnect/shinyapps.io/mcastagnaa/deldynfilter.dcf
 test*.R
 pwd.csv
+*.xlsx
+*.pdf
+*.Rmd
+*.png
