@@ -5,7 +5,6 @@
 *.Rproj
 DelSet.Rda
 *TEST.*
-rsconnect/shinyapps.io/mcastagnaa/deldynfilter.dcf
 test*.R
 pwd.csv
 *.xlsx
