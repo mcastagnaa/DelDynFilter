@@ -692,7 +692,7 @@ server <- function(input, output, session) {
   output$delDataComp <- renderPlot({
     req(length(input$table_rows_selected) > 0)
     req(unique(MAP$mgrName[MAP$DelCode %in% as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"])[,1]]) != "MIFL")
-    f_delComp(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"], input$MainRetSource))
+    f_delComp(as.data.frame(tableData$fullMap[input$table_rows_selected,"DelCode"]), input$MainRetSource)
   })
   
   output$statTable <- renderDataTable({

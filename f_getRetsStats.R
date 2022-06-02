@@ -11,7 +11,7 @@ f_getRetsStats <- function(delCode, refDate, startDate, source) {
   
   daysPer <- as.numeric(refDate-startDate)
   
-  per <- ifelse(daysPer > 31, "weekly", "daily")
+  per <- ifelse(daysPer > 140, "weekly", "daily")
   scaleVol <- ifelse(per == "weekly", 52, 252)
 
   statsData <- mainSet %>%

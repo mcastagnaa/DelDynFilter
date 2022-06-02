@@ -1,4 +1,5 @@
-#delCode = as.data.frame(c('689939','684491'))
+# delCode = as.data.frame(c('708784'))
+# source = "RBC"
 
 f_delComp <- function(delCode, source) {
   
@@ -26,7 +27,7 @@ f_delComp <- function(delCode, source) {
     filter(complete.cases(.)) %>%
     pivot_longer(-c(DelCode, DateYM)) %>%
     arrange(DateYM) %>%
-    group_by(DelCode) %>%
+    group_by(DelCode, name) %>%
     mutate(value = ifelse(DateYM == "1912", 0, value),
            Cumulative = cumprod(1+value)*100) %>%
     select(-value) %>%
