@@ -46,7 +46,7 @@ f_macroAtt <- function(startDate, endDate, thisCode, source) {
     summarise(SAAdef = paste(paste0(round(Weight*100, 1), "%"),
                              Index, CURRENCY, PriceType, collapse = "|")) %>%
     left_join(thisDelMap, by  = "Code") %>%
-    select(Level, Strategy, SAAdef) %>%
+    select(Level, Code, Strategy, SAAdef) %>%
     arrange(desc(Level))
   
   retSet <- thisDelSet %>%

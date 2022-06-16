@@ -764,7 +764,8 @@ server <- function(input, output, session) {
   output$SAAdefs <- renderDataTable(f_macroAtt(input$maStartDate, 
                                                input$refDate, 
                                                FUNDSFULL$ShortCode[FUNDSFULL$FundName == input$maFName],
-                                               input$MainRetSource)[[1]])
+                                               input$MainRetSource)[[1]],
+                                    rownames = FALSE)
   
   output$MacroAtt <- renderDataTable(datatable(f_macroAtt(input$maStartDate, 
                                                input$refDate, 
