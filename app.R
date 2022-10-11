@@ -489,7 +489,7 @@ server <- function(input, output, session) {
         )
       )
     )),
-    options = list(pageLength = 10, autoWidth = TRUE),
+    options = list(pageLength = 15, autoWidth = TRUE),
     rownames = FALSE,
     filter= "bottom",
     class = "compact cell-border") %>%

@@ -50,9 +50,16 @@ MAP <- MAP %>%
   left_join(FUNDS, by = "DBCode")  #%>%
   #filter(!(DelCode %in% EXCP$DelCode))
 
+tTestMaxDate <- max(as.Date(tTests$Date))
+
 tTests <- tTests %>%
   mutate(Date = as.Date(Date),
-         StatDate = as.Date(StatDate))
+         StatDate = as.Date(StatDate)) %>%
+  group_by(DelCode) %>%
+  mutate(maxDate = max(Date)) %>%
+  ungroup() %>%
+  filter(maxDate == tTestMaxDate) %>%
+  select(-maxDate)
 
 RANKS <- RANKS %>%
   mutate(DelCode = as.character(DelCode))

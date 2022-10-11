@@ -5,7 +5,10 @@ account: mcastagnaa
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 3693490
-bundleId: 6014911
+bundleId: 6392743
 url: https://mcastagnaa.shinyapps.io/deldynfilter/
-when: 1655405059.46457
-lastSyncTime: 1655405059.46458
+when: 1665515326.37074
+lastSyncTime: 1665515326.37076
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: chartCumP1_2m2022.png|f_macroAtt_sumOfProd_deprecated.R|macroAttrMath.Rmd|macroAttrPaper.pdf|macroAttrPaper.Rmd|perfMacroAttCalcs.xlsx|perfMacroAttCalcs2.xlsx|perP1_2m2022.png|README.md|tableP1_2m2022.png|test_anomalize.R|test_ProdOfSum.R|test_SumOfProd.R|test1.R|test2.R|test4.R|testOnXLdataMacroAttrib.R|testP1_2m2022.png
