@@ -711,8 +711,8 @@ server <- function(input, output, session) {
     
     datatable(tTests %>%
                 mutate(StatDate = as.Date(StatDate)) %>%
-                #filter(StatDate == input$refDate) %>%
-                filter(StatDate == max(StatDate, na.rm = T)) %>%
+                filter(StatDate == input$refDate) %>%
+                #filter(StatDate == max(StatDate, na.rm = T)) %>%
                 mutate(t = abs(t)) %>%
                 mutate_at(c("p", "mean", "max", "min"), ~ . * 100) %>%
                 mutate_if(is.numeric, ~ round(.,2)) %>%
