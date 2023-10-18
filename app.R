@@ -47,10 +47,12 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                 htmlwidgets::getDependency('sparkline'),
                 useShinyjs(),
                 
-                # logout button
-                div(class = "pull-right", shinyauthr::logoutUI(id = "logout")),
-                # login section
-                shinyauthr::loginUI(id = "login"),
+                conditionalPanel(condition = "!isInOffice",
+                                   # logout button
+                                   div(class = "pull-right", shinyauthr::logoutUI(id = "logout")),
+                                   # login section
+                                   shinyauthr::loginUI(id = "login")
+                                 ),
                 
                 fluidRow(
                   column(2,
@@ -262,20 +264,22 @@ ui <- fluidPage(theme=shinytheme("lumen"),
 
 server <- function(input, output, session) {
   
-  credentials <- shinyauthr::loginServer(
-    id = "login",
-    data = user_base,
-    user_col = user,
-    pwd_col = password,
-    sodium_hashed = TRUE#,
-    #log_out = reactive(logout_init())
-  )
-  
-  # Logout to hide
-  # logout_init <- shinyauthr::logoutServer(
-  #   id = "logout",
-  #   active = reactive(credentials()$user_auth)
-  # )
+  if(!isInOffice){
+    credentials <- shinyauthr::loginServer(
+      id = "login",
+      data = user_base,
+      user_col = user,
+      pwd_col = password,
+      sodium_hashed = TRUE#,
+      #log_out = reactive(logout_init())
+    )
+    
+    # Logout to hide
+    # logout_init <- shinyauthr::logoutServer(
+    #   id = "logout",
+    #   active = reactive(credentials()$user_auth)
+    # )
+  }
   
   showModal(modalDialog(
     
@@ -289,9 +293,10 @@ server <- function(input, output, session) {
       tags$li(paste("Last RBC cashflow (value date):", format(max(RBCflows$ValueDate), "%d-%h-%y"))),
       tags$li("Live accounts without Fusion returns:",
               div(paste(MAP[!is.na(MAP$SophisID) &
-                        is.na(MAP$EndDate) &
-                        !(MAP$DelCode %in% RETS$DelCode)
-                        , c("DelCode", "mgrName")], collapse = "\n"))),
+                              is.na(MAP$EndDate) &
+                              !(MAP$Style %in% c("TargetFund", "Hedge")) &
+                              !(MAP$DelCode %in% RETS$DelCode)
+                            , c("DelCode", "mgrName")], collapse = "\n"))),
       tags$li("(FUSION) Delegates with issues (odd returns/mismatch vs. delegates info):",
               length(EXCP$DelCode)),
       tags$li("(FUSION) Delegates with issues (significant deviation vs. RBC valuations):",
@@ -451,7 +456,7 @@ server <- function(input, output, session) {
     class = "compact")
   
   output$table <- renderDataTable({
-    req(credentials()$user_auth)
+    #req(credentials()$user_auth)
       
     groups <- setdiff(c(dims$Code[dims$Name == input$Group1],
                         dims$Code[dims$Name == input$Group2],

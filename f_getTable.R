@@ -35,8 +35,8 @@ f_getTable <- function(groups, input1, input2, input3, input4,
     {if (input2 == "Main") filter(., IsRepresentative) else .} %>%
     {if (input3 == "Live") filter(., is.na(EndDate)|EndDate > refDate) else .} %>%
     {if (input4 == "No") filter(., !(DelCode %in% EXCP$DelCode)) else .} %>%
-    arrange(across(groups)) %>%
-    group_by(across(groups)) %>%
+    arrange(across(all_of(groups))) %>%
+    group_by(across(all_of(groups))) %>%
     select(DelCode, all_of(groups), DelDispName) 
   
   datesFrame <- datesFrame %>%

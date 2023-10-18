@@ -42,7 +42,6 @@ f_macroAtt <- function(startDate, endDate, thisCode, source) {
   thisSAADefs <- SAADEFS %>%
     filter(Code %in% c(unique(thisDelSet$DelCode), thisDets$ShortCode)) %>%
     group_by(Code) %>%
-    filter(is.na(StartDate)| StartDate == max(StartDate)) %>%
     summarise(SAAdef = paste(paste0(round(Weight*100, 1), "%"),
                              Index, CURRENCY, PriceType, collapse = "|")) %>%
     left_join(thisDelMap, by  = "Code") %>%

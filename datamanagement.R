@@ -5,6 +5,11 @@
 #                                     resource = "https://maml.sharepoint.com/",
 #                                     app = "8d83ba2140a51fde0b9da054f011d61a")
 
+isInOffice = F
+if(readline(prompt = "Are you running this from office (Yes/anything)? ") == "Yes") {
+  isInOffice = T
+}
+
 if(readline(prompt = "Connect to Sharepoint (Yes/anything)? ") == "Yes") {
   site <- tryCatch(get_sharepoint_site(site_id = "dc4edaeb-1257-40ab-8758-018b7b5bda5a"),
                    error = function(e) e)
@@ -20,15 +25,16 @@ if(readline(prompt = "Connect to Sharepoint (Yes/anything)? ") == "Yes") {
   }
 }
 
-pwd <- read.csv("pwd.csv") 
-
-user_base <- tibble::tibble(
-  user = pwd$user,
-  password = sapply(pwd$password, sodium::password_store),
-  permissions = pwd$permission,
-  name = pwd$name
-)
-
+if(!isInOffice) {
+  pwd <- read.csv("pwd.csv")
+  
+  user_base <- tibble::tibble(
+    user = pwd$user,
+    password = sapply(pwd$password, sodium::password_store),
+    permissions = pwd$permission,
+    name = pwd$name
+  )
+}
 
 load("DelSet.Rda")
 
@@ -63,7 +69,6 @@ tTests <- tTests %>%
 
 RANKS <- RANKS %>%
   mutate(DelCode = as.character(DelCode))
-
 
 RBCidxData <- RBCidxData %>%
   mutate(weekday = weekdays(Date)) %>%
