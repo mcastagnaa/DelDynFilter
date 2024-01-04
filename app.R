@@ -121,7 +121,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                               weekstart = 1)),
                              column(3, selectInput("datesGroup",
                                                    "Periods: 1 or more",
-                                                   c("1d", "1w", "1m", "3m", "6m", "1y","MtD", "YtD", "QtD", "SI"),
+                                                   c("1d", "1w", "1m", "3m", "6m", "1y", "3y","MtD", "YtD", "QtD", "SI"),
                                                    multiple = T,
                                                    selected = c("1d", "1w", "MtD", "YtD", "QtD", "SI"))),
                              column(3, br(), br(), materialSwitch("annualizedOn", "Annualize (periods over 1 year)", 
@@ -138,7 +138,7 @@ ui <- fluidPage(theme=shinytheme("lumen"),
                       tabPanel("Charts/Stats",
                                br(),
                                fluidRow(column(3, selectInput("chartFrame", "Select time frame:", 
-                                                              choices = c("1d", "1w", "1m", "3m", "6m", "1y",
+                                                              choices = c("1d", "1w", "1m", "3m", "6m", "1y", "3y",
                                                                           "MtD", "YtD", "QtD", "SI", "Custom ..."),
                                                               selected = "YtD",
                                                               multiple = F)),
@@ -426,14 +426,15 @@ server <- function(input, output, session) {
     m3 <- max(mainSet$Date[mainSet$Date <= input$refDate %m-% months(3)])
     m6 <- max(mainSet$Date[mainSet$Date <= input$refDate %m-% months(6)])
     y1 <- max(mainSet$Date[mainSet$Date <= (input$refDate-months(12))])
+    y3 <- max(mainSet$Date[mainSet$Date <= (input$refDate-months(36))])
     QtD <- max(mainSet$Date[mainSet$Date <= (yq(quarter(input$refDate, with_year = TRUE)) - days(1))])
     MtD <- max(mainSet$Date[mainSet$Date <= as.Date(format(input$refDate, "%Y-%m-01"))-1])
     YtD <- max(mainSet$Date[mainSet$Date <= as.Date(format(input$refDate, "%Y-01-01"))-1])
     
-    datesResult$datesFrame <- data.frame(Label = c("1d", "1w", "1m", "3m", "6m", "1y", "MtD", "YtD", "QtD"),
-                                         Date = c(d1, w1, m1, m3, m6, y1, MtD, YtD, QtD),
+    datesResult$datesFrame <- data.frame(Label = c("1d", "1w", "1m", "3m", "6m", "1y", "3y", "MtD", "YtD", "QtD"),
+                                         Date = c(d1, w1, m1, m3, m6, y1, y3, MtD, YtD, QtD),
                                          stringsAsFactors = F)
-    rm(d1, w1, m1, m3, m6, y1, QtD, MtD, YtD)
+    rm(d1, w1, m1, m3, m6, y1, y3, QtD, MtD, YtD)
     })
   
   output$fullMap <- renderDataTable(
@@ -484,6 +485,7 @@ server <- function(input, output, session) {
           if("3m" %in% framesSelected$selFrames) th(colspan = 3, '3 Months'),
           if("6m" %in% framesSelected$selFrames) th(colspan = 3, '6 Months'),
           if("1y" %in% framesSelected$selFrames) th(colspan = 3, '1 Year'),
+          if("3y" %in% framesSelected$selFrames) th(colspan = 3, '3 Years'),
           if("MtD" %in% framesSelected$selFrames) th(colspan = 3, 'MtD'),
           if("QtD" %in% framesSelected$selFrames) th(colspan = 3, 'QtD'),
           if("YtD" %in% framesSelected$selFrames) th(colspan = 3, 'YtD'),

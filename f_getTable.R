@@ -3,26 +3,28 @@
 # input2 <- "Main"
 # input3 <- "Live"
 # input4 <- "Yes"
-# refDate <- as.Date("2022-02-23")
+# refDate <- as.Date("2023-12-29")
 # isAnnual <- T
-
-### datesFrame
+# source <- "RBC"
+# 
+# ### datesFrame
 # d1 <- max(RETS$Date[RETS$Date <= (refDate-1)])
 # w1 <- max(RETS$Date[RETS$Date <= (refDate-7)])
 # m1 <- max(RETS$Date[RETS$Date <= refDate %m-% months(1)])
 # m3 <- max(RETS$Date[RETS$Date <= refDate %m-% months(3)])
 # m6 <- max(RETS$Date[RETS$Date <= refDate %m-% months(6)])
 # y1 <- max(RETS$Date[RETS$Date <= (refDate-months(12))])
+# y3 <- max(RETS$Date[RETS$Date <= (refDate-months(36))])
 # QtD <- max(RETS$Date[RETS$Date <= (yq(quarter(refDate, with_year = TRUE)) - days(1))])
 # MtD <- max(RETS$Date[RETS$Date <= as.Date(format(refDate, "%Y-%m-01"))-1])
 # YtD <- max(RETS$Date[RETS$Date <= as.Date(format(refDate, "%Y-01-01"))-1])
 # 
-# datesFrame <- data.frame(Label = c("1d", "1w", "1m", "3m", "6m", "1y", "MtD", "YtD", "QtD"),
-#                                      Date = c(d1, w1, m1, m3, m6, y1, MtD, YtD, QtD),
+# datesFrame <- data.frame(Label = c("1d", "1w", "1m", "3m", "6m", "1y", "3y","MtD", "YtD", "QtD"),
+#                                      Date = c(d1, w1, m1, m3, m6, y1, y3, MtD, YtD, QtD),
 #                                      stringsAsFactors = F)
 # rm(d1, w1, m1, m3, m6, y1, QtD, MtD, YtD)
 # chartFrame <- "YtD"
-# datesGroup <- c("1d", "1w", "MtD", "YtD", "QtD", "SI")
+# datesGroup <- c("1d", "1w", "MtD", "YtD", "QtD", "3y","SI")
 
 ##### 
 f_getTable <- function(groups, input1, input2, input3, input4, 
@@ -63,7 +65,7 @@ f_getTable <- function(groups, input1, input2, input3, input4,
     select(-years) %>%
     filter(Label != "Last") %>%
     select(DelCode, Label, Del, SAA, ER) %>%
-    mutate(Label = factor(Label, levels = c("1d", "1w", "1m", "3m", "6m", "MtD", "QtD", "YtD", "SI"))) %>%
+    mutate(Label = factor(Label, levels = c("1d", "1w", "1m", "3m", "6m", "1y", "3y", "MtD", "QtD", "YtD", "SI"))) %>%
     # mutate(ER = if_else(
     #   ER < 0, 
     #   paste0("<b style='color: red; float: left;'>", ER, "</b>"),
